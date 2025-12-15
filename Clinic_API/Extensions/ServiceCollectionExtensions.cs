@@ -56,11 +56,23 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new()
+            c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
             {
-                Title = "Clinic2026 API",
+                Title = "Barefoot API",
                 Version = "v1",
-                Description = "Comprehensive Medical Clinic Management API with full database coverage"
+                Description = "BareFoot Minimal API Build in dotnet new webapi -minimal. Hosted at github [here](https://github.com/YourRepo).\n\nComprehensive Medical Clinic Management API with full database coverage.",
+                TermsOfService = new Uri("https://alhafi.barefoot.com/terms"),
+                Contact = new Microsoft.OpenApi.Models.OpenApiContact
+                {
+                    Name = "Alhafi.BareFoot",
+                    Url = new Uri("https://alhafi.barefoot.com"),
+                    Email = "Alhafi.BareFoot@example.com"
+                },
+                License = new Microsoft.OpenApi.Models.OpenApiLicense
+                {
+                    Name = "MIT",
+                    Url = new Uri("https://opensource.org/licenses/MIT")
+                }
             });
 
             // Enable Authorization using JWT (Bearer)

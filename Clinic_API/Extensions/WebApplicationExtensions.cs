@@ -16,12 +16,17 @@ public static class WebApplicationExtensions
         // Global exception handling (must be first)
         app.UseMiddleware<GlobalExceptionMiddleware>();
 
+        // Serve static files (CSS, Images for Swagger)
+        app.UseStaticFiles();
+
         // Swagger
         app.UseSwagger();
         app.UseSwaggerUI(c =>
         {
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "Clinic2026 API v1");
-            c.RoutePrefix = string.Empty; // Swagger at root
+            // c.RoutePrefix = string.Empty; // Restore default /swagger
+            c.InjectStylesheet("/css/swagger-custom.css"); // Inject custom branding
+            c.DocumentTitle = "BareFoot Swagger Documentation"; // Set window title
         });
 
         // Security & CORS
