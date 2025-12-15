@@ -26,11 +26,13 @@ public static class ServiceCollectionExtensions
         services.AddOutputCache(options =>
         {
             options.AddBasePolicy(builder =>
-                builder.Expire(TimeSpan.FromMinutes(5)));
+                builder.Expire(TimeSpan.FromMinutes(5))
+                       .SetVaryByQuery("*")); // Vary by all query params
 
             // Longer cache for Lookup tables (365 days)
             options.AddPolicy("LookupPolicy", builder =>
-                builder.Expire(TimeSpan.FromDays(365)));
+                builder.Expire(TimeSpan.FromDays(365))
+                       .SetVaryByQuery("*")); // Vary by all query params
         });
 
         // Memory Cache (Keep if needed elsewhere, otherwise usually safe to keep for other things)
