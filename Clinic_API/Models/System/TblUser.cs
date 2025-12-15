@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Clinic2026_API.Models.Entities;
+namespace Clinic2026_API.Models.System;
 
 public partial class TblUser
 {
