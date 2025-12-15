@@ -25,5 +25,6 @@ public partial class TblUser
 
     public bool? IsActive { get; set; }
 
+    [global::System.Text.Json.Serialization.JsonIgnore]
     public virtual ICollection<TblUserRole> TblUserRoles { get; set; } = new List<TblUserRole>();
 }

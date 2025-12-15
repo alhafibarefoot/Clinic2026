@@ -4,6 +4,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configure services
 builder.Services.AddApplicationServices(builder.Configuration);
+
+// Configure JSON serialization (Ignore Cycles)
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
 builder.Services.AddSwaggerDocumentation();
 builder.Services.AddCorsPolicy();
 

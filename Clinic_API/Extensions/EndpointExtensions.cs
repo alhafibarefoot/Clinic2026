@@ -457,6 +457,12 @@ public static class EndpointExtensions
         {
             try
             {
+                // Check for duplicate UserName
+                if (await db.TblUsers.AnyAsync(u => u.UserName == user.UserName))
+                {
+                    return Results.BadRequest($"User with UserName '{user.UserName}' already exists.");
+                }
+
                 // Encrypt password
                 if (!string.IsNullOrEmpty(user.UserPassword))
                 {
@@ -528,30 +534,14 @@ public static class EndpointExtensions
                 }
 
                 // Handle UserName (Primary Key) Change
+                // Handle UserName Change
                 if (user.UserName != originalUserName)
                 {
-                    // 1. Check for duplicates
-                    var userNameExists = await db.TblUsers.AnyAsync(u => u.UserName == user.UserName);
-                    if (userNameExists)
+                    // Check for duplicates
+                    if (await db.TblUsers.AnyAsync(u => u.UserName == user.UserName))
                     {
                         return Results.Conflict($"UserName '{user.UserName}' is already taken.");
                     }
-
-                    // 2. Perform Raw SQL Update to rename the PK
-                    // We must use ExecuteSqlRaw because EF Core cannot track PK changes
-                    await db.Database.ExecuteSqlRawAsync("UPDATE tblUser SET UserName = {0} WHERE Id = {1}", user.UserName, id);
-
-                    // 3. Clear ChangeTracker to detach the "old" entity version
-                    db.ChangeTracker.Clear();
-
-                    // 4. Re-fetch the user to get the new state/PK
-                    existingUser = await db.TblUsers.FirstOrDefaultAsync(u => u.Id == id);
-                    if (existingUser == null) return Results.NotFound(); // Should not happen
-                }
-                else
-                {
-                    // Ensure the incoming model matches existing to satisfy EF
-                    user.UserName = existingUser.UserName;
                 }
 
                 // Apply updates from request body

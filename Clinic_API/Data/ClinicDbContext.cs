@@ -6066,7 +6066,11 @@ public partial class ClinicDbContext : DbContext
 
         modelBuilder.Entity<TblUser>(entity =>
         {
-            entity.HasKey(e => e.UserName);
+
+
+            entity.ToTable("tblUser");
+
+            entity.HasKey(e => e.Id);
 
             entity.ToTable("tblUser");
 
@@ -6104,10 +6108,15 @@ public partial class ClinicDbContext : DbContext
 
         modelBuilder.Entity<TblUserRole>(entity =>
         {
-            entity.HasKey(e => new { e.LfUserName, e.LfRoleId });
+
 
             entity.ToTable("tblUserRole");
 
+            entity.HasKey(e => e.Id);
+
+            entity.ToTable("tblUserRole");
+
+            entity.HasIndex(e => new { e.LfUserName, e.LfRoleId }, "IX_tblUserRole_Unique").IsUnique();
             entity.HasIndex(e => e.IsActive, "IX_tblUserRole");
 
             entity.Property(e => e.LfUserName)
