@@ -36,6 +36,9 @@ public static class ServiceCollectionExtensions
         // Memory Cache (Keep if needed elsewhere, otherwise usually safe to keep for other things)
         services.AddMemoryCache();
 
+        // Encryption Service
+        services.AddScoped<Services.IEncryptionService, Services.EncryptionService>();
+
         // ProblemDetails for standardized error responses
         services.AddProblemDetails();
 

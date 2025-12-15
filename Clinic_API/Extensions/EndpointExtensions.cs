@@ -155,8 +155,8 @@ public static class EndpointExtensions
         }
         else
         {
-            // Default Policy
-            endpoint.CacheOutput();
+            // Default Policy - Cache for 5 mins but TAG it for eviction
+            endpoint.CacheOutput(x => x.Tag(typeof(T).Name));
         }
 
         endpoint.WithTags(category)

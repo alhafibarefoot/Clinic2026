@@ -14,6 +14,7 @@ app.ConfigureMiddleware();
 
 // Map API endpoints
 app.MapAllEntityEndpoints();
+app.MapUserEndpoints();
 
 
 
