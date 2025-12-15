@@ -24,6 +24,7 @@ app.MapAllEntityEndpoints();
 app.MapUserEndpoints();
 app.MapRoleEndpoints();
 app.MapUserRoleEndpoints();
+app.MapTestEndpoints();
 
 
 

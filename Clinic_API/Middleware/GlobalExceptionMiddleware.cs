@@ -99,6 +99,13 @@ public class GlobalExceptionMiddleware
                 errorResponse.ErrorCode = "DATABASE_ERROR";
                 break;
 
+            case KeyNotFoundException:
+                errorResponse.Status = (int)HttpStatusCode.NotFound;
+                errorResponse.Title = "Not Found";
+                errorResponse.Detail = "The requested resource was not found.";
+                errorResponse.ErrorCode = "NOT_FOUND";
+                break;
+
             case UnauthorizedAccessException:
                 errorResponse.Status = (int)HttpStatusCode.Unauthorized;
                 errorResponse.Title = "Unauthorized";
