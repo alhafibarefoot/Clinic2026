@@ -6138,6 +6138,12 @@ public partial class ClinicDbContext : DbContext
             entity.HasOne(d => d.LfRole).WithMany(p => p.TblUserRoles)
                 .HasForeignKey(d => d.LfRoleId)
                 .HasConstraintName("FK_tblUserRole_tblRole");
+
+            entity.HasOne<TblUser>()
+                .WithMany(p => p.TblUserRoles)
+                .HasForeignKey(d => d.LfUserName)
+                .HasPrincipalKey(p => p.UserName)
+                .HasConstraintName("FK_tblUserRole_tblUser");
         });
 
         modelBuilder.Entity<TblWeekDatum>(entity =>

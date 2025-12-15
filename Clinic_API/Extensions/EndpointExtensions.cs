@@ -226,12 +226,13 @@ public static class EndpointExtensions
             }
 
             return operation;
-        });
+        })
+        .RequireAuthorization();
     }
 
     public static WebApplication MapRoleEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/system");
+        var group = app.MapGroup("/api/system").RequireAuthorization();
 
         // POST Create Role
         group.MapPost("/tblroles", async (
@@ -362,7 +363,7 @@ public static class EndpointExtensions
 
     public static WebApplication MapUserEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/system");
+        var group = app.MapGroup("/api/system").RequireAuthorization();
 
         // GET Admin Users (Decrypted Passwords)
         // Explicitly disable caching for this sensitive/admin endpoint
@@ -629,7 +630,7 @@ public static class EndpointExtensions
 
     public static WebApplication MapUserRoleEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/system");
+        var group = app.MapGroup("/api/system").RequireAuthorization();
 
         // POST Create UserRole
         group.MapPost("/tbluserroles", async (

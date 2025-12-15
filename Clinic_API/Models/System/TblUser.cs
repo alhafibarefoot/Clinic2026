@@ -24,4 +24,6 @@ public partial class TblUser
     public string? Ipaddress { get; set; }
 
     public bool? IsActive { get; set; }
+
+    public virtual ICollection<TblUserRole> TblUserRoles { get; set; } = new List<TblUserRole>();
 }

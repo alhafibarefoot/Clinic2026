@@ -1,5 +1,6 @@
 using Clinic2026_API.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Clinic2026_API.Extensions;
 
@@ -79,6 +80,59 @@ public static class ServiceCollectionExtensions
                     .AllowAnyMethod()
                     .AllowAnyHeader();
             });
+        });
+
+        return services;
+    }
+
+
+    /// <summary>
+    /// Add JWT and Static Token Authentication
+    /// </summary>
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
+    {
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        var secretKey = jwtSettings["SecretKey"];
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = "SmartAuth";
+            options.DefaultChallengeScheme = "SmartAuth";
+        })
+        .AddJwtBearer("Bearer", options =>
+        {
+            options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSettings["Issuer"],
+                ValidAudience = jwtSettings["Audience"],
+                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                    System.Text.Encoding.UTF8.GetBytes(secretKey!))
+            };
+        })
+        .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, StaticTokenAuthenticationHandler>(
+            StaticTokenAuthenticationHandler.SchemeName, null)
+        .AddPolicyScheme("SmartAuth", "Bearer or Static Token", options =>
+        {
+            options.ForwardDefaultSelector = context =>
+            {
+                var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                if (authHeader?.StartsWith("Bearer barefoot2020", StringComparison.OrdinalIgnoreCase) == true ||
+                    authHeader?.Equals("barefoot2020", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    return StaticTokenAuthenticationHandler.SchemeName;
+                }
+                return "Bearer";
+            };
+        });
+
+        services.AddAuthorization(options =>
+        {
+            // Default policy requires authenticated user (via either scheme)
+            options.AddPolicy("Authenticated", policy => policy.RequireAuthenticatedUser());
         });
 
         return services;
