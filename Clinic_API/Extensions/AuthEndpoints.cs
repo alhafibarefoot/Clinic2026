@@ -89,6 +89,12 @@ public static class AuthEndpoints
             return Results.Ok(new { Token = jwt });
         })
         .WithTags("Auth")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "User Login / تسجيل دخول المستخدم";
+            operation.Description = "Authenticate user and return JWT token using UserName and Password. / مصادقة المستخدم وإرجاع رمز JWT باستخدام اسم المستخدم وكلمة المرور.";
+            return operation;
+        })
         .AllowAnonymous(); // Explicitly allow anonymous for login
 
         app.MapPost("/api/auth/dev-token", (
@@ -131,6 +137,12 @@ public static class AuthEndpoints
             return Results.Ok(new { Token = jwt });
         })
         .WithTags("Auth")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Get Dev Token (Admin) / الحصول على رمز المطور (أدمن)";
+            operation.Description = "Get a super-admin token for development using a secret key. / الحصول على رمز مسؤول فائق للتطوير باستخدام مفتاح سري.";
+            return operation;
+        })
         .AllowAnonymous();
 
         return app;

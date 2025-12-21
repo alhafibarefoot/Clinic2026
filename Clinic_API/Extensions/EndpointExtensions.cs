@@ -183,8 +183,8 @@ public static class EndpointExtensions
         .WithName($"Get_{routeName}")
         .WithOpenApi(operation =>
         {
-            operation.Summary = $"Get all {routeName}";
-            operation.Description = $"Retrieve all {routeName} with optional filtering, searching, and sorting.";
+            operation.Summary = $"Get all {routeName} / الحصول على جميع سجلات {routeName}";
+            operation.Description = $"Retrieve all {routeName} with optional filtering, searching, and sorting. / استرجاع جميع سجلات {routeName} مع إمكانية التصفية والبحث والفرز.";
 
             // Add filter parameters for each property
             var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
@@ -280,7 +280,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Create Role / إنشاء دور جديد";
+            operation.Description = "Create a new role in the system. / إنشاء دور جديد في النظام.";
+            return operation;
+        });
 
         // PUT Update Role
         group.MapPut("/tblroles/{id}", async (
@@ -327,7 +333,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Update Role / تحديث دور";
+            operation.Description = "Update an existing role by ID. / تحديث بيانات دور موجود باستخدام المعرف.";
+            return operation;
+        });
 
         // DELETE Role
         group.MapDelete("/tblroles/{id}", async (
@@ -356,7 +368,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Delete Role / حذف دور";
+            operation.Description = "Delete a role by ID. / حذف دور باستخدام المعرف.";
+            return operation;
+        });
 
         return app;
     }
@@ -442,8 +460,8 @@ public static class EndpointExtensions
         .WithName("Get_TblUsersAdmin")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Get all users with decrypted passwords (Admin)";
-            operation.Description = "Retrieve all users with decrypted passwords.";
+            operation.Summary = "Get all users with decrypted passwords (Admin) / الحصول على جميع المستخدمين مع كلمات المرور (أدمن)";
+            operation.Description = "Retrieve all users with decrypted passwords. / استرجاع جميع المستخدمين مع عرض كلمات المرور مفكوكة التشفير.";
             return operation;
         });
 
@@ -498,7 +516,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Create User / إنشاء مستخدم جديد";
+            operation.Description = "Create a new user in the system. / إنشاء مستخدم جديد في النظام.";
+            return operation;
+        });
 
         // PUT Update User
         group.MapPut("/tblusers/{id}", async (
@@ -583,7 +607,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Update User / تحديث مستخدم";
+            operation.Description = "Update an existing user by ID. / تحديث بيانات مستخدم موجود باستخدام المعرف.";
+            return operation;
+        });
 
         // DELETE User
         group.MapDelete("/tblusers/{id}", async (
@@ -613,7 +643,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Delete User / حذف مستخدم";
+            operation.Description = "Delete a user by ID. / حذف مستخدم باستخدام المعرف.";
+            return operation;
+        });
 
         return app;
     }
@@ -673,7 +709,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Assign Role to User / تعيين دور للمستخدم";
+            operation.Description = "Assign a role to a specific user. / تعيين دور محدد لمستخدم.";
+            return operation;
+        });
 
         // GET UserRole by ID
         group.MapGet("/tbluserroles/{id}", async (
@@ -693,7 +735,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Get User Role by ID / الحصول على دور المستخدم (بالمعرف)";
+            operation.Description = "Get details of a user role assignment. / الحصول على تفاصيل تعيين دور المستخدم.";
+            return operation;
+        });
 
         // PUT Update UserRole
         group.MapPut("/tbluserroles/{id}", async (
@@ -740,7 +788,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Update User Role / تحديث دور المستخدم";
+            operation.Description = "Update a user role assignment. / تحديث تعيين دور المستخدم.";
+            return operation;
+        });
 
         // DELETE UserRole
         group.MapDelete("/tbluserroles/{id}", async (
@@ -769,7 +823,13 @@ public static class EndpointExtensions
                 return Results.Problem(ex.Message);
             }
         })
-        .WithTags("System");
+        .WithTags("System")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Delete User Role / حذف دور المستخدم";
+            operation.Description = "Remove a role assignment from a user. / إزالة تعيين دور من مستخدم.";
+            return operation;
+        });
 
         return app;
     }
