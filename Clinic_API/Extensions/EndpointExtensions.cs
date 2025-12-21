@@ -9,6 +9,8 @@ using System.Net;
 
 namespace Clinic2026_API.Extensions;
 
+using Clinic2026_API.Models.Lookup;
+
 /// <summary>
 /// Extension methods for mapping API endpoints
 /// </summary>
@@ -23,6 +25,14 @@ public static class EndpointExtensions
         public bool? IsActive { get; set; }
     }
 
+
+    public class AbbreviationDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
     public class UserRoleDto
     {
         public int Id { get; set; }
@@ -30,6 +40,9 @@ public static class EndpointExtensions
         public int RoleId { get; set; }
         public bool? IsActive { get; set; }
     }
+
+
+
     /// <summary>
     /// Map all entity endpoints using reflection
     /// </summary>
@@ -168,10 +181,16 @@ public static class EndpointExtensions
         });
 
         // Apply Output Caching Policy
-        if (category == "Lookup")
+        if (category == "Lookup" && typeof(T).Name != "LtLookupTableReferance")
         {
             // Apply 365-day expiration and tag with Entity Name for eviction
             endpoint.CacheOutput(x => x.Expire(TimeSpan.FromDays(365)).Tag(typeof(T).Name));
+
+            // Map CRUD for Lookups (Generic) - EXCLUDING LtAbbreviation which is handled explicitly
+            if (typeof(T).Name != "LtAbbreviation")
+            {
+                MapGenericLookupCrud<T>(app, routePrefix, routeName);
+            }
         }
         else
         {
@@ -830,6 +849,374 @@ public static class EndpointExtensions
             operation.Description = "Remove a role assignment from a user. / إزالة تعيين دور من مستخدم.";
             return operation;
         });
+
+
+        return app;
+    }
+
+    /// <summary>
+    /// Helper to determine Lookup configuration (RefName and Code Property)
+    /// </summary>
+    private static (string RefName, string CodePropName) GetLookupInfo(Type type)
+    {
+        string name = type.Name;
+        if (name.StartsWith("Lt")) name = name.Substring(2);
+
+        // Remove Address prefix if present (Address0, Address1, etc.)
+        if (name.StartsWith("Address") && name.Length > 7 && char.IsDigit(name[7]))
+        {
+            name = name.Substring(8);
+        }
+
+        // Handle specific cases or standard convention
+        // Convention: Entity "Road" -> Code "RoadCode"
+        string codeProp = name + "Code";
+
+        // Check if property exists, if not, try finding any property ending in "Code" (fallback)
+        var prop = type.GetProperty(codeProp);
+        if (prop == null)
+        {
+             // Fallback: search for first string property ending in "Code" that isn't "ZipCode" etc.
+             // Or rely on the "Name" being correct for RefName even if CodeProp is different.
+             // For now, assume the convention holds or fallback to first *Code property.
+             prop = type.GetProperties().FirstOrDefault(p => p.Name.EndsWith("Code") && p.PropertyType == typeof(string));
+             if (prop != null) codeProp = prop.Name;
+        }
+
+        return (name, codeProp);
+    }
+
+    private static void MapGenericLookupCrud<T>(WebApplication app, string routePrefix, string routeName) where T : class
+    {
+        var group = app.MapGroup($"/api/{routePrefix}/{routeName}").RequireAuthorization();
+
+        // POST Create (Auto-Generated Code)
+        group.MapPost("/", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            HttpContext httpContext,
+            [Microsoft.AspNetCore.Mvc.FromBody] T entity) =>
+        {
+            try
+            {
+                var (refName, codePropName) = GetLookupInfo(typeof(T));
+                var propInfo = typeof(T).GetProperty(codePropName);
+
+                if (propInfo == null) return Results.BadRequest($"Configuration Error: Code Property '{codePropName}' not found on {typeof(T).Name}.");
+
+                // 1. Lookup Reference (Try Exact or Space-Separated)
+                // e.g. "AccountingDocumentType" OR "Accounting Document Type"
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
+
+                if (refTable == null)
+                {
+                    // Try adding spaces to PascalCase
+                    var spacedName = System.Text.RegularExpressions.Regex.Replace(refName, "(\\B[A-Z])", " $1");
+                    refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == spacedName);
+                }
+
+                if (refTable == null)
+                {
+                    return Results.BadRequest($"Configuration Error: Lookup Reference for '{refName}' (or '{System.Text.RegularExpressions.Regex.Replace(refName, "(\\B[A-Z])", " $1")}') not found.");
+                }
+
+                // 2. Generate New Code
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+
+                string padFormat = new string('0', refTable.PadLeftNo);
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(padFormat)}";
+
+                // 3. Set Code on Entity
+                propInfo.SetValue(entity, newCode);
+
+                // Audit Fields (Reflection)
+                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
+                string currentIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
+                    .AddressList
+                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    ?.ToString() ?? "127.0.0.1";
+
+                var setAudit = (string prop, object val) =>
+                {
+                    var p = typeof(T).GetProperty(prop);
+                    if (p != null && p.CanWrite) p.SetValue(entity, val);
+                };
+
+                setAudit("CreatedBy", currentUser);
+                setAudit("CreatedOn", DateTime.UtcNow);
+                setAudit("ModifiedBy", currentUser);
+                setAudit("ModifiedOn", DateTime.UtcNow);
+                setAudit("Ipaddress", currentIp);
+                setAudit("IsActive", true); // Default to active if present
+
+                db.Set<T>().Add(entity);
+                await db.SaveChangesAsync();
+
+                await cacheStore.EvictByTagAsync(typeof(T).Name, default);
+
+                // Use reflection to get the ID if we want to return Created URL with ID or Code
+                var id = propInfo.GetValue(entity);
+                return Results.Created($"/api/{routePrefix}/{routeName}/{id}", entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = $"Create {typeof(T).Name} / إنشاء سجل جديد";
+            operation.Description = "Create a new record with auto-generated code.";
+            return operation;
+        });
+
+        // PUT Update by Code
+        group.MapPut("/{code}", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            HttpContext httpContext,
+            [Microsoft.AspNetCore.Mvc.FromRoute] string code,
+            [Microsoft.AspNetCore.Mvc.FromBody] T inputEntity) =>
+        {
+            try
+            {
+                var (refName, codePropName) = GetLookupInfo(typeof(T));
+
+                // Build dynamic query for finding by Code
+                // We cannot easily use inputEntity.Code because we receive it as string in URL
+                // We need to find the entity where [codePropName] == code
+
+                var param = System.Linq.Expressions.Expression.Parameter(typeof(T), "x");
+                var prop = System.Linq.Expressions.Expression.Property(param, codePropName);
+                var val = System.Linq.Expressions.Expression.Constant(code);
+                var body = System.Linq.Expressions.Expression.Equal(prop, val);
+                var lambda = System.Linq.Expressions.Expression.Lambda<Func<T, bool>>(body, param);
+
+                var existingEntity = await db.Set<T>().FirstOrDefaultAsync(lambda);
+
+                if (existingEntity == null) return Results.NotFound($"{typeof(T).Name} with Code '{code}' not found.");
+
+                // Update Fields (excluding Immutable ones)
+                // We can use db.Entry().CurrentValues.SetValues but we must protect Key/Audit/Code
+                var entry = db.Entry(existingEntity);
+
+                // Save immutable values
+                var createdBy = typeof(T).GetProperty("CreatedBy")?.GetValue(existingEntity);
+                var createdOn = typeof(T).GetProperty("CreatedOn")?.GetValue(existingEntity);
+                var id = typeof(T).GetProperty("Id")?.GetValue(existingEntity);
+
+                entry.CurrentValues.SetValues(inputEntity);
+
+                // Restore immutable values
+                if (createdBy != null) typeof(T).GetProperty("CreatedBy")?.SetValue(existingEntity, createdBy);
+                if (createdOn != null) typeof(T).GetProperty("CreatedOn")?.SetValue(existingEntity, createdOn);
+                if (id != null) typeof(T).GetProperty("Id")?.SetValue(existingEntity, id);
+                typeof(T).GetProperty(codePropName)?.SetValue(existingEntity, code); // Ensure Code matches URL
+
+                // Audit Update
+                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
+                string currentIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
+                     .AddressList
+                     .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                     ?.ToString() ?? "127.0.0.1";
+
+                typeof(T).GetProperty("ModifiedBy")?.SetValue(existingEntity, currentUser);
+                typeof(T).GetProperty("ModifiedOn")?.SetValue(existingEntity, DateTime.UtcNow);
+                typeof(T).GetProperty("Ipaddress")?.SetValue(existingEntity, currentIp);
+
+                await db.SaveChangesAsync();
+                await cacheStore.EvictByTagAsync(typeof(T).Name, default);
+
+                return Results.Ok(existingEntity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = $"Update {typeof(T).Name} / تحديث سجل";
+            return operation;
+        });
+
+        // DELETE by Code
+        group.MapDelete("/{code}", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            [Microsoft.AspNetCore.Mvc.FromRoute] string code) =>
+        {
+            try
+            {
+                var (_, codePropName) = GetLookupInfo(typeof(T));
+
+                var param = System.Linq.Expressions.Expression.Parameter(typeof(T), "x");
+                var prop = System.Linq.Expressions.Expression.Property(param, codePropName);
+                var val = System.Linq.Expressions.Expression.Constant(code);
+                var body = System.Linq.Expressions.Expression.Equal(prop, val);
+                var lambda = System.Linq.Expressions.Expression.Lambda<Func<T, bool>>(body, param);
+
+                var entity = await db.Set<T>().FirstOrDefaultAsync(lambda);
+
+                if (entity == null) return Results.NotFound();
+
+                db.Set<T>().Remove(entity);
+                await db.SaveChangesAsync();
+                await cacheStore.EvictByTagAsync(typeof(T).Name, default);
+
+                return Results.Ok(entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = $"Delete {typeof(T).Name} / حذف سجل";
+            return operation;
+        });
+    }
+
+    public static WebApplication MapAbbreviationEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/ltabbreviations").RequireAuthorization();
+
+        // POST Create Abbreviation (Explicit Implementation)
+        group.MapPost("/", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            HttpContext httpContext,
+            AbbreviationDto dto) =>
+        {
+            try
+            {
+                // 1. Lookup Reference for Code Generation
+                var refName = "Abbreviation";
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
+
+                if (refTable == null)
+                {
+                    return Results.BadRequest("Configuration Error: Lookup Reference for 'Abbreviation' not found.");
+                }
+
+                // 2. Generate New Code
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+
+                string padFormat = new string('0', refTable.PadLeftNo);
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(padFormat)}";
+
+                // 3. Create Entity
+                var entity = new LtAbbreviation
+                {
+                    AbbreviationCode = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    IsActive = dto.IsActive ?? true
+                };
+
+                // Audit Fields
+                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
+                string currentIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
+                    .AddressList
+                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    ?.ToString() ?? "127.0.0.1";
+
+                entity.CreatedOn = DateTime.UtcNow;
+                entity.CreatedBy = currentUser;
+                entity.ModifiedOn = DateTime.UtcNow;
+                entity.ModifiedBy = currentUser;
+                entity.Ipaddress = currentIp;
+
+                db.LtAbbreviations.Add(entity);
+                await db.SaveChangesAsync();
+
+                // Evict cache
+                await cacheStore.EvictByTagAsync("LtAbbreviation", default);
+
+                return Results.Created($"/api/lookup/ltabbreviations/{entity.AbbreviationCode}", entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Create Abbreviation / إنشاء اختصار";
+            operation.Description = "Create a new abbreviation (Explicit).";
+            return operation;
+        });
+
+        // PUT Update Abbreviation
+        group.MapPut("/{code}", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            HttpContext httpContext,
+            string code,
+            AbbreviationDto dto) =>
+        {
+            try
+            {
+                var entity = await db.LtAbbreviations.FirstOrDefaultAsync(x => x.AbbreviationCode == code);
+                if (entity == null)
+                {
+                    return Results.NotFound($"Abbreviation with Code '{code}' not found.");
+                }
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                entity.IsActive = dto.IsActive;
+
+                // Audit
+                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
+                entity.ModifiedBy = currentUser;
+                entity.ModifiedOn = DateTime.UtcNow;
+
+                await db.SaveChangesAsync();
+                await cacheStore.EvictByTagAsync("LtAbbreviation", default);
+
+                return Results.Ok(entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup");
+
+        // DELETE
+        group.MapDelete("/{code}", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            string code) =>
+        {
+            try
+            {
+                var entity = await db.LtAbbreviations.FirstOrDefaultAsync(x => x.AbbreviationCode == code);
+                if (entity == null)
+                {
+                    return Results.NotFound();
+                }
+
+                db.LtAbbreviations.Remove(entity);
+                await db.SaveChangesAsync();
+                await cacheStore.EvictByTagAsync("LtAbbreviation", default);
+
+                return Results.Ok(entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup");
 
         return app;
     }

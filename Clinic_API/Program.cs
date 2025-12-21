@@ -31,6 +31,8 @@ app.MapUserEndpoints();
 app.MapRoleEndpoints();
 app.MapUserRoleEndpoints();
 app.MapTestEndpoints();
+app.MapAbbreviationEndpoints();
+
 
 
 
