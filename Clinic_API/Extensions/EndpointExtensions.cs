@@ -631,6 +631,12 @@ public static class EndpointExtensions
         {
             try
             {
+                // Check if user exists
+                if (!await db.TblUsers.AnyAsync(u => u.UserName == userRoleDto.UserName))
+                {
+                    return Results.BadRequest($"User '{userRoleDto.UserName}' does not exist to add role.");
+                }
+
                 // Map DTO to Entity
                 var userRole = new TblUserRole
                 {
@@ -669,6 +675,26 @@ public static class EndpointExtensions
         })
         .WithTags("System");
 
+        // GET UserRole by ID
+        group.MapGet("/tbluserroles/{id}", async (
+            ClinicDbContext db,
+            int id) =>
+        {
+            try
+            {
+                var userRole = await db.TblUserRoles
+                    .Include(ur => ur.LfRole) // Optional: Include related role details
+                    .FirstOrDefaultAsync(ur => ur.Id == id);
+
+                return userRole is not null ? Results.Ok(userRole) : Results.NotFound($"UserRole with Id '{id}' not found.");
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("System");
+
         // PUT Update UserRole
         group.MapPut("/tbluserroles/{id}", async (
             ClinicDbContext db,
@@ -683,7 +709,7 @@ public static class EndpointExtensions
                 var existingUserRole = await db.TblUserRoles.FindAsync(id);
                 if (existingUserRole == null)
                 {
-                    return Results.NotFound();
+                    return Results.NotFound($"UserRole with Id '{id}' not found.");
                 }
 
                 // Update Scalar Properties
