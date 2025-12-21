@@ -60,13 +60,13 @@ public static class ServiceCollectionExtensions
             {
                 Title = "Barefoot API",
                 Version = "v1",
-                Description = "BareFoot Minimal API Build in dotnet new webapi -minimal. Hosted at github [here](https://github.com/YourRepo).\n\nComprehensive Medical Clinic Management API with full database coverage.",
-                TermsOfService = new Uri("https://alhafi.barefoot.com/terms"),
+                Description = "BareFoot Minimal API Build in dotnet new webapi -minimal. Hosted at github [here](https://github.com/alhafibarefoot).\n\nComprehensive Medical Clinic Management API with full database coverage.",
+                TermsOfService = new Uri("https://www.alhafi.org"),
                 Contact = new Microsoft.OpenApi.Models.OpenApiContact
                 {
                     Name = "Alhafi.BareFoot",
-                    Url = new Uri("https://alhafi.barefoot.com"),
-                    Email = "Alhafi.BareFoot@example.com"
+                    Url = new Uri("https://www.alhafi.org"),
+                    Email = "alhafi@alhafi.org"
                 },
                 License = new Microsoft.OpenApi.Models.OpenApiLicense
                 {
