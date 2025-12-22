@@ -41,6 +41,58 @@ public static class EndpointExtensions
         public bool? IsActive { get; set; }
     }
 
+    public class PaymentMethodDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public bool? IsCreditCard { get; set; }
+        public bool? IsLoyalityCard { get; set; }
+        public string? PaymentTypeLogo { get; set; } // Base64
+        public bool? IsActive { get; set; }
+    }
+
+    public class RequestChannelDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public string? ChannalPhoto { get; set; } // Base64
+        public bool? IsActive { get; set; }
+    }
+
+    public class TaskImpactDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public string? ImpactImage { get; set; } // Base64
+        public bool? IsActive { get; set; }
+    }
+
+    public class TaskUrgencyDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public string? UrgencyImage { get; set; } // Base64
+        public bool? IsActive { get; set; }
+    }
+
+    public class TaskPriorityDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public string? ImagePriority { get; set; } // Base64
+        public int? HourServe { get; set; }
+        public bool? IsDefault { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    public class TaskRateDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public string? RatingImage { get; set; } // Base64
+        public bool? IsActive { get; set; }
+    }
+
     public class UserRoleDto
     {
         public int Id { get; set; }
@@ -194,14 +246,37 @@ public static class EndpointExtensions
             // Apply 365-day expiration and tag with Entity Name for eviction
             endpoint.CacheOutput(x => x.Expire(TimeSpan.FromDays(365)).Tag(typeof(T).Name));
 
-            // Map CRUD for Lookups (Generic) - EXCLUDING LtAbbreviation and LtMedicalSpecialty
-            if (typeof(T).Name == "LtMedicalSpecialty")
+            // Map CRUD for Lookups (Generic) - EXCLUDING specific entities handled manually
+            switch (typeof(T).Name)
             {
-                app.MapMedicalSpecialtyEndpoints();
-            }
-            else if (typeof(T).Name != "LtAbbreviation")
-            {
-                MapGenericLookupCrud<T>(app, routePrefix, routeName);
+                case "LtMedicalSpecialty":
+                    app.MapMedicalSpecialtyEndpoints();
+                    break;
+                case "LtPaymentMethod":
+                    app.MapPaymentMethodEndpoints();
+                    break;
+                case "LtRequest2Channal":
+                    app.MapRequestChannelEndpoints();
+                    break;
+                case "LtTask1Impact":
+                    app.MapTask1ImpactEndpoints();
+                    break;
+                case "LtTask2Urgency":
+                    app.MapTask2UrgencyEndpoints();
+                    break;
+                case "LtTask3Priority":
+                    app.MapTask3PriorityEndpoints();
+                    break;
+                case "LtTask5Rate":
+                    app.MapTask5RateEndpoints();
+                    break;
+                case "LtAbbreviation":
+                    // Handled manually in Program.cs (or could be moved here too)
+                    // Currently Program.cs calls MapAbbreviationEndpoints(), so we just skip here.
+                    break;
+                default:
+                    MapGenericLookupCrud<T>(app, routePrefix, routeName);
+                    break;
             }
         }
         else
@@ -1436,6 +1511,240 @@ public static class EndpointExtensions
         })
         .WithTags("Lookup");
 
+        return app;
+    }
+
+
+    // Helper for Base64 Conversion
+    private static byte[]? ConvertBase64ToBytes(string? base64String)
+    {
+        if (string.IsNullOrEmpty(base64String) || base64String == "string") return null;
+        try
+        {
+            if (base64String.Contains(",")) base64String = base64String.Split(',')[1];
+            return Convert.FromBase64String(base64String);
+        }
+        catch
+        {
+            return null; // Or throw if strictly required
+        }
+    }
+
+    public static WebApplication MapPaymentMethodEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/ltpaymentmethods").RequireAuthorization();
+
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, PaymentMethodDto dto) =>
+        {
+            try {
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "PaymentMethod")
+                               ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Payment Method");
+                if (refTable == null) return Results.BadRequest("Reference 'PaymentMethod' not found");
+
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+
+                var entity = new LtPaymentMethod
+                {
+                    PaymentMethodCode = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    IsCreditCard = dto.IsCreditCard,
+                    IsLoyalityCard = dto.IsLoyalityCard,
+                    PaymentTypeLogo = ConvertBase64ToBytes(dto.PaymentTypeLogo),
+                    IsActive = dto.IsActive ?? true,
+                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    CreatedOn = DateTime.UtcNow,
+                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    ModifiedOn = DateTime.UtcNow,
+                    Ipaddress = "127.0.0.1"
+                };
+                db.LtPaymentMethods.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtPaymentMethod", default);
+                return Results.Created($"/api/lookup/ltpaymentmethods/{newCode}", entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+
+        return app;
+    }
+
+    public static WebApplication MapRequestChannelEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/ltrequest2channals").RequireAuthorization();
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, RequestChannelDto dto) =>
+        {
+            try {
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Request2Channal")
+                               ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Request 2 Channal");
+                if (refTable == null) return Results.BadRequest("Reference 'Request2Channal' not found");
+
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+
+                var entity = new LtRequest2Channal
+                {
+                    RequestTypeChannal = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    ChannalPhoto = ConvertBase64ToBytes(dto.ChannalPhoto),
+                    IsActive = dto.IsActive ?? true,
+                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    CreatedOn = DateTime.UtcNow,
+                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    ModifiedOn = DateTime.UtcNow,
+                    Ipaddress = "127.0.0.1"
+                };
+                db.LtRequest2Channals.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtRequest2Channal", default);
+                return Results.Created($"/api/lookup/ltrequest2channals/{newCode}", entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+        return app;
+    }
+
+    public static WebApplication MapTask1ImpactEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/lttask1impacts").RequireAuthorization();
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskImpactDto dto) =>
+        {
+            try {
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task1Impact") ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task 1 Impact");
+                if (refTable == null) return Results.BadRequest("Reference 'Task1Impact' not found");
+
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+
+                var entity = new LtTask1Impact
+                {
+                    ImpactCode = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    ImpactImage = ConvertBase64ToBytes(dto.ImpactImage),
+                    IsActive = dto.IsActive ?? true,
+                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    CreatedOn = DateTime.UtcNow,
+                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    ModifiedOn = DateTime.UtcNow,
+                    Ipaddress = "127.0.0.1"
+                };
+                db.LtTask1Impacts.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask1Impact", default);
+                return Results.Created($"/api/lookup/lttask1impacts/{newCode}", entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+        return app;
+    }
+
+   public static WebApplication MapTask2UrgencyEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/lttask2urgencies").RequireAuthorization();
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskUrgencyDto dto) =>
+        {
+            try {
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task2Urgency") ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task 2 Urgency");
+                if (refTable == null) return Results.BadRequest("Reference 'Task2Urgency' not found");
+
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+
+                var entity = new LtTask2Urgency
+                {
+                    UrgencyCode = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    UrgencyImage = ConvertBase64ToBytes(dto.UrgencyImage),
+                    IsActive = dto.IsActive ?? true,
+                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    CreatedOn = DateTime.UtcNow,
+                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    ModifiedOn = DateTime.UtcNow,
+                    Ipaddress = "127.0.0.1"
+                };
+                db.LtTask2Urgencies.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask2Urgency", default);
+                return Results.Created($"/api/lookup/lttask2urgencies/{newCode}", entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+        return app;
+    }
+
+    public static WebApplication MapTask3PriorityEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/lttask3priorities").RequireAuthorization();
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskPriorityDto dto) =>
+        {
+            try {
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task3Priority") ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task 3 Priority");
+                if (refTable == null) return Results.BadRequest("Reference 'Task3Priority' not found");
+
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+
+                var entity = new LtTask3Priority
+                {
+                    PriorityCode = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    ImagePriority = ConvertBase64ToBytes(dto.ImagePriority),
+                    HourServe = dto.HourServe,
+                    IsDefault = dto.IsDefault,
+                    IsActive = dto.IsActive ?? true,
+                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    CreatedOn = DateTime.UtcNow,
+                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    ModifiedOn = DateTime.UtcNow,
+                    Ipaddress = "127.0.0.1"
+                };
+                db.LtTask3Priorities.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask3Priority", default);
+                return Results.Created($"/api/lookup/lttask3priorities/{newCode}", entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+        return app;
+    }
+
+    public static WebApplication MapTask5RateEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/lttask5rates").RequireAuthorization();
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskRateDto dto) =>
+        {
+            try {
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task5Rate") ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task 5 Rate");
+                if (refTable == null) return Results.BadRequest("Reference 'Task5Rate' not found");
+
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+
+                var entity = new LtTask5Rate
+                {
+                    RatingCode = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    RatingImage = ConvertBase64ToBytes(dto.RatingImage),
+                    IsActive = dto.IsActive ?? true,
+                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    CreatedOn = DateTime.UtcNow,
+                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
+                    ModifiedOn = DateTime.UtcNow,
+                    Ipaddress = "127.0.0.1"
+                };
+                db.LtTask5Rates.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask5Rate", default);
+                return Results.Created($"/api/lookup/lttask5rates/{newCode}", entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
         return app;
     }
 }
