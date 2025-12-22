@@ -33,6 +33,14 @@ public static class EndpointExtensions
         public bool? IsActive { get; set; }
     }
 
+    public class MedicalSpecialtyDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public string? MedicalTypeLogo { get; set; } // Base64 String
+        public bool? IsActive { get; set; }
+    }
+
     public class UserRoleDto
     {
         public int Id { get; set; }
@@ -186,8 +194,12 @@ public static class EndpointExtensions
             // Apply 365-day expiration and tag with Entity Name for eviction
             endpoint.CacheOutput(x => x.Expire(TimeSpan.FromDays(365)).Tag(typeof(T).Name));
 
-            // Map CRUD for Lookups (Generic) - EXCLUDING LtAbbreviation which is handled explicitly
-            if (typeof(T).Name != "LtAbbreviation")
+            // Map CRUD for Lookups (Generic) - EXCLUDING LtAbbreviation and LtMedicalSpecialty
+            if (typeof(T).Name == "LtMedicalSpecialty")
+            {
+                app.MapMedicalSpecialtyEndpoints();
+            }
+            else if (typeof(T).Name != "LtAbbreviation")
             {
                 MapGenericLookupCrud<T>(app, routePrefix, routeName);
             }
@@ -1208,6 +1220,205 @@ public static class EndpointExtensions
                 db.LtAbbreviations.Remove(entity);
                 await db.SaveChangesAsync();
                 await cacheStore.EvictByTagAsync("LtAbbreviation", default);
+
+                return Results.Ok(entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup");
+
+        return app;
+    }
+    public static WebApplication MapMedicalSpecialtyEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/ltmedicalspecialties").RequireAuthorization();
+
+        // POST Create MedicalSpecialty
+        group.MapPost("/", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            HttpContext httpContext,
+            MedicalSpecialtyDto dto) =>
+        {
+            try
+            {
+                // 1. Lookup Reference
+                var refName = "MedicalSpecialty";
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
+
+                if (refTable == null)
+                {
+                    // Fallback to spaced name just in case
+                    refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Medical Specialty");
+                }
+
+                if (refTable == null)
+                {
+                    return Results.BadRequest("Configuration Error: Lookup Reference for 'MedicalSpecialty' not found.");
+                }
+
+                // 2. Generate New Code
+                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+                refTable.ModifiedOn = DateTime.UtcNow;
+
+                string padFormat = new string('0', refTable.PadLeftNo);
+                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(padFormat)}";
+
+                // 3. Handle Logo (Base64 -> Byte[])
+                byte[]? logoBytes = null;
+                if (!string.IsNullOrEmpty(dto.MedicalTypeLogo) && dto.MedicalTypeLogo != "string")
+                {
+                    try
+                    {
+                        // Remove data:image/...;base64, prefix if present
+                        var base64 = dto.MedicalTypeLogo;
+                        if (base64.Contains(","))
+                        {
+                            base64 = base64.Split(',')[1];
+                        }
+                        logoBytes = Convert.FromBase64String(base64);
+                    }
+                    catch
+                    {
+                       // Log warning but don't fail? Or fail? User prefers specific error.
+                       // For now, let's just ignore invalid logo or set to null
+                       // But user specifically complained about "Failed to read parameter".
+                       // Returning BadRequest here is better.
+                       return Results.BadRequest("Invalid Base64 string for MedicalTypeLogo.");
+                    }
+                }
+
+                // 4. Create Entity
+                var entity = new LtMedicalSpecialty
+                {
+                    MedicalSpecialtyCode = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    MedicalTypeLogo = logoBytes,
+                    IsActive = dto.IsActive ?? true
+                };
+
+                // Audit Fields
+                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
+                string currentIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
+                    .AddressList
+                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                    ?.ToString() ?? "127.0.0.1";
+
+                entity.CreatedOn = DateTime.UtcNow;
+                entity.CreatedBy = currentUser;
+                entity.ModifiedOn = DateTime.UtcNow;
+                entity.ModifiedBy = currentUser;
+                entity.Ipaddress = currentIp;
+
+                db.LtMedicalSpecialties.Add(entity);
+                await db.SaveChangesAsync();
+
+                // Evict cache
+                await cacheStore.EvictByTagAsync("LtMedicalSpecialty", default);
+
+                return Results.Created($"/api/lookup/ltmedicalspecialties/{entity.MedicalSpecialtyCode}", entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Create Medical Specialty / إنشاء تخصص طبي";
+            operation.Description = "Create a new medical specialty with logo support.";
+            return operation;
+        });
+
+        // PUT Update MedicalSpecialty
+        group.MapPut("/{code}", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            HttpContext httpContext,
+            string code,
+            MedicalSpecialtyDto dto) =>
+        {
+            try
+            {
+                var entity = await db.LtMedicalSpecialties.FirstOrDefaultAsync(x => x.MedicalSpecialtyCode == code);
+                if (entity == null)
+                {
+                    return Results.NotFound($"Medical Specialty with Code '{code}' not found.");
+                }
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                entity.IsActive = dto.IsActive;
+
+                // Handle Logo Update
+                if (dto.MedicalTypeLogo != null) // Only update if provided
+                {
+                    if (string.IsNullOrEmpty(dto.MedicalTypeLogo) || dto.MedicalTypeLogo == "string")
+                    {
+                         // If explicit empty string or "string", maybe clear it?
+                         // Or preserve existing if "string"?
+                         // Let's assume empty string means clear. "string" means ignore/invalid.
+                         if (dto.MedicalTypeLogo == "") entity.MedicalTypeLogo = null;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var base64 = dto.MedicalTypeLogo;
+                            if (base64.Contains(",")) base64 = base64.Split(',')[1];
+                            entity.MedicalTypeLogo = Convert.FromBase64String(base64);
+                        }
+                        catch
+                        {
+                             return Results.BadRequest("Invalid Base64 string for MedicalTypeLogo.");
+                        }
+                    }
+                }
+
+                // Audit
+                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
+                entity.ModifiedBy = currentUser;
+                entity.ModifiedOn = DateTime.UtcNow;
+
+                await db.SaveChangesAsync();
+                await cacheStore.EvictByTagAsync("LtMedicalSpecialty", default);
+
+                return Results.Ok(entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Update Medical Specialty / تحديث تخصص طبي";
+            return operation;
+        });
+
+        // DELETE MedicalSpecialty
+        group.MapDelete("/{code}", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            string code) =>
+        {
+            try
+            {
+                var entity = await db.LtMedicalSpecialties.FirstOrDefaultAsync(x => x.MedicalSpecialtyCode == code);
+                if (entity == null)
+                {
+                    return Results.NotFound();
+                }
+
+                db.LtMedicalSpecialties.Remove(entity);
+                await db.SaveChangesAsync();
+                await cacheStore.EvictByTagAsync("LtMedicalSpecialty", default);
 
                 return Results.Ok(entity);
             }
