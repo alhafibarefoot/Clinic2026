@@ -881,6 +881,13 @@ public static class EndpointExtensions
         }
 
         // Handle specific cases or standard convention
+        // Overrides for specific entities where default convention fails (e.g. picks Foreign Key)
+        if (type.Name == "LtMedicalAllergy") return ("MedicalAllergy", "AllergiesCode");
+        if (type.Name == "LtMedicalPatientPain") return ("MedicalPatientPain", "PatientPainCode");
+        if (type.Name == "LtMedicalDiagnosis") return ("MedicalDiagnosis", "DiagnosisCode");
+        if (type.Name == "LtMedicalSymptom") return ("MedicalSymptom", "SymptomsCode");
+        if (type.Name == "LtMedicalTreatment") return ("MedicalTreatment", "TreatmentsCode");
+
         // Convention: Entity "Road" -> Code "RoadCode"
         string codeProp = name + "Code";
 
