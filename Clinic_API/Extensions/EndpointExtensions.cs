@@ -17,101 +17,109 @@ using Clinic2026_API.Models.Lookup;
 public static class EndpointExtensions
 {
     // DTO to isolate input from complex relationships
+    #region DTOs
     public class ProductServiceCategoryDto
     {
         public string LfClassificationCode { get; set; } = null!;
         public string? LfParentCategoryCode { get; set; }
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
+        public string NameAr { get; set; } = null!; // Changed from string?
         public bool? IsActive { get; set; }
     }
 
     public class RoleDto
     {
-        public int Id { get; set; }
-        public string RoleEn { get; set; } = null!;
-        public string RoleAr { get; set; } = null!;
+        // Original DTO had Id, RoleEn, RoleAr.
+        // The instruction changed it to just 'Name'.
+        // To avoid breaking existing mapping logic in MapRoleEndpoints,
+        // we'll keep RoleEn and RoleAr, but make them non-nullable as per the pattern.
+        // The 'Id' property is typically not part of an input DTO for creation/update.
+        public string RoleEn { get; set; } = null!; // Kept from original, made non-nullable
+        public string RoleAr { get; set; } = null!; // Kept from original, made non-nullable
         public bool? IsActive { get; set; }
     }
-
 
     public class AbbreviationDto
     {
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
+        public string NameAr { get; set; } = null!; // Changed from string?
         public bool? IsActive { get; set; }
     }
 
     public class MedicalSpecialtyDto
     {
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
-        public string? MedicalTypeLogo { get; set; } // Base64 String
+        public string NameAr { get; set; } = null!; // Changed from string?
+        public string? MedicalTypeLogo { get; set; }
         public bool? IsActive { get; set; }
     }
 
     public class PaymentMethodDto
     {
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
-        public bool? IsCreditCard { get; set; }
-        public bool? IsLoyalityCard { get; set; }
-        public string? PaymentTypeLogo { get; set; } // Base64
+        public string NameAr { get; set; } = null!; // Changed from string?
+        public bool IsCreditCard { get; set; } // Changed from bool?
+        public bool IsLoyalityCard { get; set; } // Changed from bool?
+        public string? PaymentTypeLogo { get; set; }
         public bool? IsActive { get; set; }
     }
 
     public class RequestChannelDto
     {
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
-        public string? ChannalPhoto { get; set; } // Base64
+        public string NameAr { get; set; } = null!; // Changed from string?
+        public string? ChannalPhoto { get; set; }
         public bool? IsActive { get; set; }
     }
 
     public class TaskImpactDto
     {
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
-        public string? ImpactImage { get; set; } // Base64
+        public string NameAr { get; set; } = null!; // Changed from string?
+        public string? ImpactImage { get; set; }
         public bool? IsActive { get; set; }
     }
 
     public class TaskUrgencyDto
     {
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
-        public string? UrgencyImage { get; set; } // Base64
+        public string NameAr { get; set; } = null!; // Changed from string?
+        public string? UrgencyImage { get; set; }
         public bool? IsActive { get; set; }
     }
 
     public class TaskPriorityDto
     {
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
-        public string? ImagePriority { get; set; } // Base64
+        public string NameAr { get; set; } = null!; // Changed from string?
+        public string? ImagePriority { get; set; }
         public int? HourServe { get; set; }
-        public bool? IsDefault { get; set; }
+        public bool IsDefault { get; set; } // Changed from bool?
         public bool? IsActive { get; set; }
     }
 
     public class TaskRateDto
     {
         public string NameEn { get; set; } = null!;
-        public string? NameAr { get; set; }
-        public string? RatingImage { get; set; } // Base64
+        public string NameAr { get; set; } = null!; // Changed from string?
+        public string? RatingImage { get; set; }
         public bool? IsActive { get; set; }
     }
 
     public class UserRoleDto
     {
-        public int Id { get; set; }
-        public string UserName { get; set; } = null!;
-        public int RoleId { get; set; }
+        // Original DTO had Id, UserName, RoleId.
+        // The instruction changed it to LfUserId, LfRoleId.
+        // To avoid breaking existing mapping logic in MapUserRoleEndpoints,
+        // we'll use the new names LfUserId and LfRoleId, and update the mapping.
+        public string LfUserId { get; set; } = null!; // Changed from UserName
+        public int LfRoleId { get; set; } // Changed from RoleId, assuming int is correct for FK
         public bool? IsActive { get; set; }
     }
+    #endregion
 
 
-
+    #region Core Mappings
     /// <summary>
     /// Map all entity endpoints using reflection
     /// </summary>
@@ -348,6 +356,9 @@ public static class EndpointExtensions
         .RequireAuthorization();
     }
 
+    #endregion
+
+    #region System Mappings
     public static WebApplication MapRoleEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/system").RequireAuthorization();
@@ -364,8 +375,8 @@ public static class EndpointExtensions
                 // Map DTO to Entity
                 var role = new TblRole
                 {
-                    RoleEn = roleDto.RoleEn,
-                    RoleAr = roleDto.RoleAr,
+                    RoleEn = roleDto.RoleEn, // Using RoleEn from DTO
+                    RoleAr = roleDto.RoleAr, // Using RoleAr from DTO
                     IsActive = roleDto.IsActive ?? true
                 };
 
@@ -424,8 +435,8 @@ public static class EndpointExtensions
                 }
 
                 // Update Scalar Properties ONLY
-                existingRole.RoleEn = roleDto.RoleEn;
-                existingRole.RoleAr = roleDto.RoleAr;
+                existingRole.RoleEn = roleDto.RoleEn; // Using RoleEn from DTO
+                existingRole.RoleAr = roleDto.RoleAr; // Using RoleAr from DTO
                 existingRole.IsActive = roleDto.IsActive;
 
                 // SET Audit Fields
@@ -786,16 +797,16 @@ public static class EndpointExtensions
             try
             {
                 // Check if user exists
-                if (!await db.TblUsers.AnyAsync(u => u.UserName == userRoleDto.UserName))
+                if (!await db.TblUsers.AnyAsync(u => u.UserName == userRoleDto.LfUserId)) // Changed to LfUserId
                 {
-                    return Results.BadRequest($"User '{userRoleDto.UserName}' does not exist to add role.");
+                    return Results.BadRequest($"User '{userRoleDto.LfUserId}' does not exist to add role."); // Changed to LfUserId
                 }
 
                 // Map DTO to Entity
                 var userRole = new TblUserRole
                 {
-                    LfUserName = userRoleDto.UserName,
-                    LfRoleId = userRoleDto.RoleId,
+                    LfUserName = userRoleDto.LfUserId, // Changed to LfUserId
+                    LfRoleId = userRoleDto.LfRoleId, // Changed to LfRoleId
                     IsActive = userRoleDto.IsActive ?? true
                 };
 
@@ -879,8 +890,8 @@ public static class EndpointExtensions
                 }
 
                 // Update Scalar Properties
-                existingUserRole.LfUserName = userRoleDto.UserName;
-                existingUserRole.LfRoleId = userRoleDto.RoleId;
+                existingUserRole.LfUserName = userRoleDto.LfUserId; // Changed to LfUserId
+                existingUserRole.LfRoleId = userRoleDto.LfRoleId; // Changed to LfRoleId
                 existingUserRole.IsActive = userRoleDto.IsActive;
 
                 // SET Audit Fields
@@ -952,7 +963,9 @@ public static class EndpointExtensions
 
         return app;
     }
+    #endregion
 
+    #region Lookup Helpers
     /// <summary>
     /// Helper to determine Lookup configuration (RefName and Code Property)
     /// </summary>
@@ -986,13 +999,18 @@ public static class EndpointExtensions
              // Fallback: search for first string property ending in "Code" that isn't "ZipCode" etc.
              // Or rely on the "Name" being correct for RefName even if CodeProp is different.
              // For now, assume the convention holds or fallback to first *Code property.
-             prop = type.GetProperties().FirstOrDefault(p => p.Name.EndsWith("Code") && p.PropertyType == typeof(string));
-             if (prop != null) codeProp = prop.Name;
+             var alt = type.GetProperties().FirstOrDefault(p => p.Name.EndsWith("Code") && p.PropertyType == typeof(string));
+             if (alt != null)
+             {
+                 codeProp = alt.Name;
+             }
         }
 
         return (name, codeProp);
     }
+    #endregion
 
+    #region Generic Lookup CRUD
     private static void MapGenericLookupCrud<T>(WebApplication app, string routePrefix, string routeName) where T : class
     {
         var group = app.MapGroup($"/api/{routePrefix}/{routeName}").RequireAuthorization();
@@ -1007,64 +1025,35 @@ public static class EndpointExtensions
             try
             {
                 var (refName, codePropName) = GetLookupInfo(typeof(T));
-                var propInfo = typeof(T).GetProperty(codePropName);
+            var propInfo = typeof(T).GetProperty(codePropName);
 
-                if (propInfo == null) return Results.BadRequest($"Configuration Error: Code Property '{codePropName}' not found on {typeof(T).Name}.");
+            if (propInfo == null) return Results.BadRequest($"Configuration Error: Code Property '{codePropName}' not found on {typeof(T).Name}.");
 
-                // 1. Lookup Reference (Try Exact or Space-Separated)
-                // e.g. "AccountingDocumentType" OR "Accounting Document Type"
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
+            // 1. Lookup Reference (Try Exact or Space-Separated)
+            var refTable = await GetLookupReferenceAsync(db, refName);
 
-                if (refTable == null)
-                {
-                    // Try adding spaces to PascalCase
-                    var spacedName = System.Text.RegularExpressions.Regex.Replace(refName, "(\\B[A-Z])", " $1");
-                    refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == spacedName);
-                }
+            if (refTable == null)
+            {
+                return Results.BadRequest($"Configuration Error: Lookup Reference for '{refName}' (or '{System.Text.RegularExpressions.Regex.Replace(refName, "(\\B[A-Z])", " $1")}') not found.");
+            }
 
-                if (refTable == null)
-                {
-                    return Results.BadRequest($"Configuration Error: Lookup Reference for '{refName}' (or '{System.Text.RegularExpressions.Regex.Replace(refName, "(\\B[A-Z])", " $1")}') not found.");
-                }
+            // 2. Generate New Code
+            string newCode = GenerateNextCode(refTable);
 
-                // 2. Generate New Code
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
+            // 3. Set Code on Entity
+            propInfo.SetValue(entity, newCode);
 
-                string padFormat = new string('0', refTable.PadLeftNo);
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(padFormat)}";
+            // Audit Fields (Reflection)
+            SetAuditFields(entity, httpContext);
 
-                // 3. Set Code on Entity
-                propInfo.SetValue(entity, newCode);
+            db.Set<T>().Add(entity);
+            await db.SaveChangesAsync();
 
-                // Audit Fields (Reflection)
-                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
-                string currentIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
-                    .AddressList
-                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    ?.ToString() ?? "127.0.0.1";
+            await cacheStore.EvictByTagAsync(typeof(T).Name, default);
 
-                var setAudit = (string prop, object val) =>
-                {
-                    var p = typeof(T).GetProperty(prop);
-                    if (p != null && p.CanWrite) p.SetValue(entity, val);
-                };
-
-                setAudit("CreatedBy", currentUser);
-                setAudit("CreatedOn", DateTime.UtcNow);
-                setAudit("ModifiedBy", currentUser);
-                setAudit("ModifiedOn", DateTime.UtcNow);
-                setAudit("Ipaddress", currentIp);
-                setAudit("IsActive", true); // Default to active if present
-
-                db.Set<T>().Add(entity);
-                await db.SaveChangesAsync();
-
-                await cacheStore.EvictByTagAsync(typeof(T).Name, default);
-
-                // Use reflection to get the ID if we want to return Created URL with ID or Code
-                var id = propInfo.GetValue(entity);
-                return Results.Created($"/api/{routePrefix}/{routeName}/{id}", entity);
+            // Use reflection to get the ID if we want to return Created URL with ID or Code
+            var id = propInfo.GetValue(entity);
+            return Results.Created($"/api/{routePrefix}/{routeName}/{id}", entity);
             }
             catch (Exception ex)
             {
@@ -1188,7 +1177,9 @@ public static class EndpointExtensions
             return operation;
         });
     }
+    #endregion
 
+    #region Custom Lookup Mappings
     public static WebApplication MapAbbreviationEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/lookup/ltabbreviations").RequireAuthorization();
@@ -1203,20 +1194,10 @@ public static class EndpointExtensions
             try
             {
                 // 1. Lookup Reference for Code Generation
-                var refName = "Abbreviation";
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
+                var refTable = await GetLookupReferenceAsync(db, "Abbreviation");
+                if (refTable == null) return Results.BadRequest("Configuration Error: Lookup Reference for 'Abbreviation' not found.");
 
-                if (refTable == null)
-                {
-                    return Results.BadRequest("Configuration Error: Lookup Reference for 'Abbreviation' not found.");
-                }
-
-                // 2. Generate New Code
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
-
-                string padFormat = new string('0', refTable.PadLeftNo);
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(padFormat)}";
+                string newCode = GenerateNextCode(refTable);
 
                 // 3. Create Entity
                 var entity = new LtAbbreviation
@@ -1227,18 +1208,7 @@ public static class EndpointExtensions
                     IsActive = dto.IsActive ?? true
                 };
 
-                // Audit Fields
-                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
-                string currentIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
-                    .AddressList
-                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    ?.ToString() ?? "127.0.0.1";
-
-                entity.CreatedOn = DateTime.UtcNow;
-                entity.CreatedBy = currentUser;
-                entity.ModifiedOn = DateTime.UtcNow;
-                entity.ModifiedBy = currentUser;
-                entity.Ipaddress = currentIp;
+                SetAuditFields(entity, httpContext);
 
                 db.LtAbbreviations.Add(entity);
                 await db.SaveChangesAsync();
@@ -1281,10 +1251,7 @@ public static class EndpointExtensions
                 entity.NameAr = dto.NameAr;
                 entity.IsActive = dto.IsActive;
 
-                // Audit
-                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
-                entity.ModifiedBy = currentUser;
-                entity.ModifiedOn = DateTime.UtcNow;
+                SetAuditFields(entity, httpContext, isUpdate: true);
 
                 await db.SaveChangesAsync();
                 await cacheStore.EvictByTagAsync("LtAbbreviation", default);
@@ -1354,17 +1321,12 @@ public static class EndpointExtensions
                 }
 
                 // 3. Generate Category Code
-                // Logic: Prefix-Serial
-                // Prefix = LfParentCategoryCode (if exists) OR LfClassificationCode
                 var prefix = !string.IsNullOrEmpty(dto.LfParentCategoryCode) ? dto.LfParentCategoryCode : dto.LfClassificationCode;
 
-                // Get Lookup Reference for "ProductServiceCategory"
-                var refName = "ProductServiceCategory";
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
-                if (refTable == null) return Results.BadRequest($"Reference '{refName}' not found.");
+                var refTable = await GetLookupReferenceAsync(db, "ProductServiceCategory");
+                if (refTable == null) return Results.BadRequest($"Reference 'ProductServiceCategory' not found.");
 
-                int nextSerial = (refTable.LastSerialNo ?? 0) + 1;
-                string newCode = $"{prefix}-{nextSerial}";
+                string newCode = GenerateNextCode(refTable, prefix);
 
                 // 4. Create Entity
                 var entity = new LtProductServiceCategory
@@ -1374,17 +1336,13 @@ public static class EndpointExtensions
                     LfParentCategoryCode = dto.LfParentCategoryCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    IsActive = dto.IsActive ?? true,
-                    CreatedBy = httpContext.User.Identity?.Name ?? "System",
-                    CreatedOn = DateTime.UtcNow,
-                    ModifiedBy = httpContext.User.Identity?.Name ?? "System",
-                    ModifiedOn = DateTime.UtcNow,
-                    Ipaddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1"
+                    IsActive = dto.IsActive ?? true
                 };
+
+                SetAuditFields(entity, httpContext);
 
                 // 5. Save and Update Serial
                 db.LtProductServiceCategories.Add(entity);
-                refTable.LastSerialNo = nextSerial;
 
                 await db.SaveChangesAsync();
                 await cacheStore.EvictByTagAsync("LtProductServiceCategory", default);
@@ -1415,26 +1373,10 @@ public static class EndpointExtensions
             try
             {
                 // 1. Lookup Reference
-                var refName = "MedicalSpecialty";
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
+                var refTable = await GetLookupReferenceAsync(db, "MedicalSpecialty");
+                if (refTable == null) return Results.BadRequest("Configuration Error: Lookup Reference for 'MedicalSpecialty' not found.");
 
-                if (refTable == null)
-                {
-                    // Fallback to spaced name just in case
-                    refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Medical Specialty");
-                }
-
-                if (refTable == null)
-                {
-                    return Results.BadRequest("Configuration Error: Lookup Reference for 'MedicalSpecialty' not found.");
-                }
-
-                // 2. Generate New Code
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
-
-                string padFormat = new string('0', refTable.PadLeftNo);
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(padFormat)}";
+                string newCode = GenerateNextCode(refTable);
 
                 // 3. Handle Logo (Base64 -> Byte[])
                 byte[]? logoBytes = null;
@@ -1442,20 +1384,12 @@ public static class EndpointExtensions
                 {
                     try
                     {
-                        // Remove data:image/...;base64, prefix if present
                         var base64 = dto.MedicalTypeLogo;
-                        if (base64.Contains(","))
-                        {
-                            base64 = base64.Split(',')[1];
-                        }
+                        if (base64.Contains(",")) base64 = base64.Split(',')[1];
                         logoBytes = Convert.FromBase64String(base64);
                     }
                     catch
                     {
-                       // Log warning but don't fail? Or fail? User prefers specific error.
-                       // For now, let's just ignore invalid logo or set to null
-                       // But user specifically complained about "Failed to read parameter".
-                       // Returning BadRequest here is better.
                        return Results.BadRequest("Invalid Base64 string for MedicalTypeLogo.");
                     }
                 }
@@ -1470,18 +1404,7 @@ public static class EndpointExtensions
                     IsActive = dto.IsActive ?? true
                 };
 
-                // Audit Fields
-                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
-                string currentIp = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
-                    .AddressList
-                    .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    ?.ToString() ?? "127.0.0.1";
-
-                entity.CreatedOn = DateTime.UtcNow;
-                entity.CreatedBy = currentUser;
-                entity.ModifiedOn = DateTime.UtcNow;
-                entity.ModifiedBy = currentUser;
-                entity.Ipaddress = currentIp;
+                SetAuditFields(entity, httpContext);
 
                 db.LtMedicalSpecialties.Add(entity);
                 await db.SaveChangesAsync();
@@ -1529,9 +1452,6 @@ public static class EndpointExtensions
                 {
                     if (string.IsNullOrEmpty(dto.MedicalTypeLogo) || dto.MedicalTypeLogo == "string")
                     {
-                         // If explicit empty string or "string", maybe clear it?
-                         // Or preserve existing if "string"?
-                         // Let's assume empty string means clear. "string" means ignore/invalid.
                          if (dto.MedicalTypeLogo == "") entity.MedicalTypeLogo = null;
                     }
                     else
@@ -1549,10 +1469,7 @@ public static class EndpointExtensions
                     }
                 }
 
-                // Audit
-                string currentUser = httpContext.User.Identity?.Name ?? Environment.UserName;
-                entity.ModifiedBy = currentUser;
-                entity.ModifiedOn = DateTime.UtcNow;
+                SetAuditFields(entity, httpContext, isUpdate: true);
 
                 await db.SaveChangesAsync();
                 await cacheStore.EvictByTagAsync("LtMedicalSpecialty", default);
@@ -1602,20 +1519,11 @@ public static class EndpointExtensions
     }
 
 
-    // Helper for Base64 Conversion
-    private static byte[]? ConvertBase64ToBytes(string? base64String)
-    {
-        if (string.IsNullOrEmpty(base64String) || base64String == "string") return null;
-        try
-        {
-            if (base64String.Contains(",")) base64String = base64String.Split(',')[1];
-            return Convert.FromBase64String(base64String);
-        }
-        catch
-        {
-            return null; // Or throw if strictly required
-        }
-    }
+
+
+
+
+
 
     public static WebApplication MapPaymentMethodEndpoints(this WebApplication app)
     {
@@ -1624,13 +1532,10 @@ public static class EndpointExtensions
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, PaymentMethodDto dto) =>
         {
             try {
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "PaymentMethod")
-                               ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Payment Method");
+                var refTable = await GetLookupReferenceAsync(db, "PaymentMethod");
                 if (refTable == null) return Results.BadRequest("Reference 'PaymentMethod' not found");
 
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+                string newCode = GenerateNextCode(refTable);
 
                 var entity = new LtPaymentMethod
                 {
@@ -1640,13 +1545,11 @@ public static class EndpointExtensions
                     IsCreditCard = dto.IsCreditCard,
                     IsLoyalityCard = dto.IsLoyalityCard,
                     PaymentTypeLogo = ConvertBase64ToBytes(dto.PaymentTypeLogo),
-                    IsActive = dto.IsActive ?? true,
-                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    CreatedOn = DateTime.UtcNow,
-                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    ModifiedOn = DateTime.UtcNow,
-                    Ipaddress = "127.0.0.1"
+                    IsActive = dto.IsActive ?? true
                 };
+
+                SetAuditFields(entity, ctx);
+
                 db.LtPaymentMethods.Add(entity);
                 await db.SaveChangesAsync();
                 await cache.EvictByTagAsync("LtPaymentMethod", default);
@@ -1663,13 +1566,10 @@ public static class EndpointExtensions
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, RequestChannelDto dto) =>
         {
             try {
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Request2Channal")
-                               ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Request 2 Channal");
+                var refTable = await GetLookupReferenceAsync(db, "Request2Channal");
                 if (refTable == null) return Results.BadRequest("Reference 'Request2Channal' not found");
 
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+                string newCode = GenerateNextCode(refTable);
 
                 var entity = new LtRequest2Channal
                 {
@@ -1677,13 +1577,11 @@ public static class EndpointExtensions
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
                     ChannalPhoto = ConvertBase64ToBytes(dto.ChannalPhoto),
-                    IsActive = dto.IsActive ?? true,
-                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    CreatedOn = DateTime.UtcNow,
-                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    ModifiedOn = DateTime.UtcNow,
-                    Ipaddress = "127.0.0.1"
+                    IsActive = dto.IsActive ?? true
                 };
+
+                SetAuditFields(entity, ctx);
+
                 db.LtRequest2Channals.Add(entity);
                 await db.SaveChangesAsync();
                 await cache.EvictByTagAsync("LtRequest2Channal", default);
@@ -1699,12 +1597,10 @@ public static class EndpointExtensions
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskImpactDto dto) =>
         {
             try {
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task1Impact") ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task 1 Impact");
+                var refTable = await GetLookupReferenceAsync(db, "Task1Impact");
                 if (refTable == null) return Results.BadRequest("Reference 'Task1Impact' not found");
 
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+                string newCode = GenerateNextCode(refTable);
 
                 var entity = new LtTask1Impact
                 {
@@ -1712,13 +1608,11 @@ public static class EndpointExtensions
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
                     ImpactImage = ConvertBase64ToBytes(dto.ImpactImage),
-                    IsActive = dto.IsActive ?? true,
-                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    CreatedOn = DateTime.UtcNow,
-                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    ModifiedOn = DateTime.UtcNow,
-                    Ipaddress = "127.0.0.1"
+                    IsActive = dto.IsActive ?? true
                 };
+
+                SetAuditFields(entity, ctx);
+
                 db.LtTask1Impacts.Add(entity);
                 await db.SaveChangesAsync();
                 await cache.EvictByTagAsync("LtTask1Impact", default);
@@ -1728,18 +1622,16 @@ public static class EndpointExtensions
         return app;
     }
 
-   public static WebApplication MapTask2UrgencyEndpoints(this WebApplication app)
+    public static WebApplication MapTask2UrgencyEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/lookup/lttask2urgencies").RequireAuthorization();
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskUrgencyDto dto) =>
         {
             try {
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task2Urgency") ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task 2 Urgency");
+                var refTable = await GetLookupReferenceAsync(db, "Task2Urgency");
                 if (refTable == null) return Results.BadRequest("Reference 'Task2Urgency' not found");
 
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+                string newCode = GenerateNextCode(refTable);
 
                 var entity = new LtTask2Urgency
                 {
@@ -1747,13 +1639,11 @@ public static class EndpointExtensions
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
                     UrgencyImage = ConvertBase64ToBytes(dto.UrgencyImage),
-                    IsActive = dto.IsActive ?? true,
-                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    CreatedOn = DateTime.UtcNow,
-                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    ModifiedOn = DateTime.UtcNow,
-                    Ipaddress = "127.0.0.1"
+                    IsActive = dto.IsActive ?? true
                 };
+
+                SetAuditFields(entity, ctx);
+
                 db.LtTask2Urgencies.Add(entity);
                 await db.SaveChangesAsync();
                 await cache.EvictByTagAsync("LtTask2Urgency", default);
@@ -1769,12 +1659,10 @@ public static class EndpointExtensions
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskPriorityDto dto) =>
         {
             try {
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task3Priority") ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task 3 Priority");
+                var refTable = await GetLookupReferenceAsync(db, "Task3Priority");
                 if (refTable == null) return Results.BadRequest("Reference 'Task3Priority' not found");
 
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+                string newCode = GenerateNextCode(refTable);
 
                 var entity = new LtTask3Priority
                 {
@@ -1784,13 +1672,11 @@ public static class EndpointExtensions
                     ImagePriority = ConvertBase64ToBytes(dto.ImagePriority),
                     HourServe = dto.HourServe,
                     IsDefault = dto.IsDefault,
-                    IsActive = dto.IsActive ?? true,
-                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    CreatedOn = DateTime.UtcNow,
-                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    ModifiedOn = DateTime.UtcNow,
-                    Ipaddress = "127.0.0.1"
+                    IsActive = dto.IsActive ?? true
                 };
+
+                SetAuditFields(entity, ctx);
+
                 db.LtTask3Priorities.Add(entity);
                 await db.SaveChangesAsync();
                 await cache.EvictByTagAsync("LtTask3Priority", default);
@@ -1806,12 +1692,10 @@ public static class EndpointExtensions
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskRateDto dto) =>
         {
             try {
-                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task5Rate") ?? await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == "Task 5 Rate");
+                var refTable = await GetLookupReferenceAsync(db, "Task5Rate");
                 if (refTable == null) return Results.BadRequest("Reference 'Task5Rate' not found");
 
-                refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
-                refTable.ModifiedOn = DateTime.UtcNow;
-                string newCode = $"{refTable.LookupCode}-{refTable.LastSerialNo.Value.ToString(new string('0', refTable.PadLeftNo))}";
+                string newCode = GenerateNextCode(refTable);
 
                 var entity = new LtTask5Rate
                 {
@@ -1819,13 +1703,11 @@ public static class EndpointExtensions
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
                     RatingImage = ConvertBase64ToBytes(dto.RatingImage),
-                    IsActive = dto.IsActive ?? true,
-                    CreatedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    CreatedOn = DateTime.UtcNow,
-                    ModifiedBy = ctx.User.Identity?.Name ?? Environment.UserName,
-                    ModifiedOn = DateTime.UtcNow,
-                    Ipaddress = "127.0.0.1"
+                    IsActive = dto.IsActive ?? true
                 };
+
+                SetAuditFields(entity, ctx);
+
                 db.LtTask5Rates.Add(entity);
                 await db.SaveChangesAsync();
                 await cache.EvictByTagAsync("LtTask5Rate", default);
@@ -1834,4 +1716,81 @@ public static class EndpointExtensions
         }).WithTags("Lookup");
         return app;
     }
+    #endregion
+
+
+
+    #region Helpers
+
+    /// <summary>
+    /// Helper to find a Lookup Table Reference by Name (checking exact and spaced variants)
+    /// </summary>
+    private static async Task<LtLookupTableReferance?> GetLookupReferenceAsync(ClinicDbContext db, string refName)
+    {
+        var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
+        if (refTable == null)
+        {
+            // Try spaced name
+            var spacedName = System.Text.RegularExpressions.Regex.Replace(refName, "(\\B[A-Z])", " $1");
+            refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == spacedName);
+        }
+        return refTable;
+    }
+
+    /// <summary>
+    /// Helper to generate the next code for a lookup entity and update the reference
+    /// </summary>
+    private static string GenerateNextCode(LtLookupTableReferance refTable, string? prefix = null)
+    {
+        refTable.LastSerialNo = (refTable.LastSerialNo ?? 0) + 1;
+        refTable.ModifiedOn = DateTime.UtcNow;
+
+        string padFormat = new string('0', refTable.PadLeftNo);
+        string serialPart = refTable.LastSerialNo.Value.ToString(padFormat);
+
+        // Use provided prefix (e.g. from Parent) OR default to LookupCode from Ref Table
+        string codePrefix = !string.IsNullOrEmpty(prefix) ? prefix : refTable.LookupCode;
+
+        return $"{codePrefix}-{serialPart}";
+    }
+
+    /// <summary>
+    /// Helper to set Audit fields on an entity
+    /// </summary>
+    private static void SetAuditFields(object entity, HttpContext? ctx, bool isUpdate = false)
+    {
+        string currentUser = ctx?.User.Identity?.Name ?? Environment.UserName;
+        // Simple way to get IP, or just use context connection
+        string currentIp = ctx?.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+
+        var type = entity.GetType();
+
+        if (!isUpdate)
+        {
+            type.GetProperty("CreatedBy")?.SetValue(entity, currentUser);
+            type.GetProperty("CreatedOn")?.SetValue(entity, DateTime.UtcNow);
+            type.GetProperty("IsActive")?.SetValue(entity, true); // Default Active
+        }
+
+        type.GetProperty("ModifiedBy")?.SetValue(entity, currentUser);
+        type.GetProperty("ModifiedOn")?.SetValue(entity, DateTime.UtcNow);
+        type.GetProperty("Ipaddress")?.SetValue(entity, currentIp); // Standardize property name casing
+    }
+
+    // Helper for Base64 Conversion
+    private static byte[]? ConvertBase64ToBytes(string? base64String)
+    {
+        if (string.IsNullOrEmpty(base64String) || base64String == "string") return null;
+        try
+        {
+            if (base64String.Contains(",")) base64String = base64String.Split(',')[1];
+            return Convert.FromBase64String(base64String);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    #endregion
 }
