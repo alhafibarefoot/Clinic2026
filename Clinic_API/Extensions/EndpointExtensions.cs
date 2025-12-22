@@ -17,6 +17,15 @@ using Clinic2026_API.Models.Lookup;
 public static class EndpointExtensions
 {
     // DTO to isolate input from complex relationships
+    public class ProductServiceCategoryDto
+    {
+        public string LfClassificationCode { get; set; } = null!;
+        public string? LfParentCategoryCode { get; set; }
+        public string NameEn { get; set; } = null!;
+        public string? NameAr { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
     public class RoleDto
     {
         public int Id { get; set; }
@@ -268,9 +277,12 @@ public static class EndpointExtensions
                     app.MapTask3PriorityEndpoints();
                     break;
                 case "LtTask5Rate":
-                    app.MapTask5RateEndpoints();
-                    break;
-                case "LtAbbreviation":
+                app.MapTask5RateEndpoints();
+                break;
+            case "LtProductServiceCategory":
+                app.MapProductServiceCategoryEndpoints();
+                break;
+            case "LtAbbreviation":
                     // Handled manually in Program.cs (or could be moved here too)
                     // Currently Program.cs calls MapAbbreviationEndpoints(), so we just skip here.
                     break;
@@ -961,9 +973,10 @@ public static class EndpointExtensions
         if (type.Name == "LtMedicalPatientPain") return ("MedicalPatientPain", "PatientPainCode");
         if (type.Name == "LtMedicalDiagnosis") return ("MedicalDiagnosis", "DiagnosisCode");
         if (type.Name == "LtMedicalSymptom") return ("MedicalSymptom", "SymptomsCode");
-        if (type.Name == "LtMedicalTreatment") return ("MedicalTreatment", "TreatmentsCode");
+    if (type.Name == "LtMedicalTreatment") return ("MedicalTreatment", "TreatmentsCode");
+    if (type.Name == "LtProductServiceCategory") return ("ProductServiceCategory", "CategoryCode");
 
-        // Convention: Entity "Road" -> Code "RoadCode"
+    // Convention: Entity "Road" -> Code "RoadCode"
         string codeProp = name + "Code";
 
         // Check if property exists, if not, try finding any property ending in "Code" (fallback)
@@ -1314,6 +1327,80 @@ public static class EndpointExtensions
 
         return app;
     }
+    public static WebApplication MapProductServiceCategoryEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/ltproductservicecategories").RequireAuthorization();
+
+        // POST Create ProductServiceCategory
+        group.MapPost("/", async (
+            ClinicDbContext db,
+            IOutputCacheStore cacheStore,
+            HttpContext httpContext,
+            ProductServiceCategoryDto dto) =>
+        {
+            try
+            {
+                // 1. Validate Classification Code
+                var classification = await db.LtProductServiceClassifications.FirstOrDefaultAsync(c => c.ClassificationCode == dto.LfClassificationCode);
+                if (classification == null)
+                    return Results.BadRequest($"Classification Code '{dto.LfClassificationCode}' not found.");
+
+                // 2. Validate Parent Category Code (if provided)
+                if (!string.IsNullOrEmpty(dto.LfParentCategoryCode))
+                {
+                    var parent = await db.LtProductServiceCategories.FirstOrDefaultAsync(c => c.CategoryCode == dto.LfParentCategoryCode);
+                    if (parent == null)
+                        return Results.BadRequest($"Parent Category Code '{dto.LfParentCategoryCode}' not found.");
+                }
+
+                // 3. Generate Category Code
+                // Logic: Prefix-Serial
+                // Prefix = LfParentCategoryCode (if exists) OR LfClassificationCode
+                var prefix = !string.IsNullOrEmpty(dto.LfParentCategoryCode) ? dto.LfParentCategoryCode : dto.LfClassificationCode;
+
+                // Get Lookup Reference for "ProductServiceCategory"
+                var refName = "ProductServiceCategory";
+                var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
+                if (refTable == null) return Results.BadRequest($"Reference '{refName}' not found.");
+
+                int nextSerial = (refTable.LastSerialNo ?? 0) + 1;
+                string newCode = $"{prefix}-{nextSerial}";
+
+                // 4. Create Entity
+                var entity = new LtProductServiceCategory
+                {
+                    CategoryCode = newCode,
+                    LfClassificationCode = dto.LfClassificationCode,
+                    LfParentCategoryCode = dto.LfParentCategoryCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    IsActive = dto.IsActive ?? true,
+                    CreatedBy = httpContext.User.Identity?.Name ?? "System",
+                    CreatedOn = DateTime.UtcNow,
+                    ModifiedBy = httpContext.User.Identity?.Name ?? "System",
+                    ModifiedOn = DateTime.UtcNow,
+                    Ipaddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1"
+                };
+
+                // 5. Save and Update Serial
+                db.LtProductServiceCategories.Add(entity);
+                refTable.LastSerialNo = nextSerial;
+
+                await db.SaveChangesAsync();
+                await cacheStore.EvictByTagAsync("LtProductServiceCategory", default);
+
+                return Results.Created($"/api/lookup/ltproductservicecategories/{newCode}", entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup");
+
+        return app;
+    }
+
     public static WebApplication MapMedicalSpecialtyEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/lookup/ltmedicalspecialties").RequireAuthorization();
