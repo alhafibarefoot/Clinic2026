@@ -447,7 +447,7 @@ public static class EndpointExtensions
     public static WebApplication MapFileScreenActionEndpoints(this WebApplication app)
     {
         // 1. GET
-        MapGenericGet<LtFileScreenAction>(app, "/api/lookup", "ltfilescreenactions", "Lookup");
+        MapGenericGet<LtFileScreenAction>(app, "lookup", "ltfilescreenactions", "Lookup");
 
         var group = app.MapGroup("/api/lookup/ltfilescreenactions").RequireAuthorization();
 
@@ -2353,9 +2353,9 @@ public static class EndpointExtensions
                     query = QueryService.ApplySort(query, sort, order);
                 }
 
-                // 4. Pagination
+                // 4. Pagination (Default: page=1, pageSize=50)
                 int pageNumber = int.TryParse(ctx.Request.Query["page"], out var p) ? p : 1;
-                int size = int.TryParse(ctx.Request.Query["pageSize"], out var s) ? s : 10;
+                int size = int.TryParse(ctx.Request.Query["pageSize"], out var s) ? s : 50;
 
                 var totalCount = await query.CountAsync();
                 var items = await query.Skip((pageNumber - 1) * size).Take(size).ToListAsync();
@@ -2392,9 +2392,63 @@ public static class EndpointExtensions
         .WithOpenApi(operation =>
         {
             operation.Summary = $"Get all {routeName} / الحصول على جميع سجلات {routeName}";
-            operation.Description = $"Retrieve all {routeName} with optional filtering, searching, and sorting. / استرجاع جميع سجلات {routeName} مع إمكانية التصفية والبحث والفرز.";
+            operation.Description = $"Retrieve all {routeName} with optional filtering, searching, sorting, and pagination. / استرجاع جميع سجلات {routeName} مع إمكانية التصفية والبحث والفرز والترقيم.";
 
-            // Add params logic
+            // Add explicit pagination parameters
+            operation.Parameters.Add(new Microsoft.OpenApi.Models.OpenApiParameter
+            {
+                Name = "page",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Query,
+                Description = "Page number (default: 1)",
+                Required = false,
+                Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                {
+                    Type = "integer",
+                    Default = new Microsoft.OpenApi.Any.OpenApiInteger(1)
+                }
+            });
+
+            operation.Parameters.Add(new Microsoft.OpenApi.Models.OpenApiParameter
+            {
+                Name = "pageSize",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Query,
+                Description = "Number of records per page (default: 50)",
+                Required = false,
+                Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                {
+                    Type = "integer",
+                    Default = new Microsoft.OpenApi.Any.OpenApiInteger(50)
+                }
+            });
+
+            operation.Parameters.Add(new Microsoft.OpenApi.Models.OpenApiParameter
+            {
+                Name = "search",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Query,
+                Description = "Search term to filter results",
+                Required = false,
+                Schema = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string" }
+            });
+
+            operation.Parameters.Add(new Microsoft.OpenApi.Models.OpenApiParameter
+            {
+                Name = "sort",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Query,
+                Description = "Property name to sort by",
+                Required = false,
+                Schema = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string" }
+            });
+
+            operation.Parameters.Add(new Microsoft.OpenApi.Models.OpenApiParameter
+            {
+                Name = "order",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Query,
+                Description = "Sort order: 'asc' or 'desc' (default: asc)",
+                Required = false,
+                Schema = new Microsoft.OpenApi.Models.OpenApiSchema { Type = "string" }
+            });
+
+            // Add params logic for entity properties
             var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (var prop in properties)
             {
