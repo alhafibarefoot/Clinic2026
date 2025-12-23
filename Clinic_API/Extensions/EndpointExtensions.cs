@@ -1,4 +1,4 @@
-using Clinic2026_API.Data;
+﻿using Clinic2026_API.Data;
 using Clinic2026_API.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
@@ -204,93 +204,29 @@ public static class EndpointExtensions
         string routeName,
         string category) where T : class
     {
-        var endpoint = app.MapGet($"/api/{routePrefix}/{routeName}", async (
-            ClinicDbContext db,
-            HttpRequest request,
-            ILogger<T> logger,
-            string? search = null,
-            string? sort = null,
-            string? order = null,
-            int? page = 1,
-            int? pageSize = 50) =>
+        string entityName = typeof(T).Name;
+
+        // 1. Intercept Fully Custom Entities (For Ordering: GET is inside these custom methods)
+        switch (entityName)
         {
-            try
-            {
-                // Ensure valid page and pageSize
-                int pageNumber = page ?? 1;
-                int size = pageSize ?? 50;
-                if (pageNumber < 1) pageNumber = 1;
-                if (size < 1) size = 50;
-                if (size > 1000) size = 1000; // Cap page size
+            case "LtFiscalYear":
+                app.MapFiscalYearEndpoints();
+                return;
+            case "LtAccountingDocumentType":
+                app.MapAccountingDocumentTypeEndpoints();
+                return;
+            case "LtCurrency":
+                app.MapCurrencyEndpoints();
+                return;
+        }
 
-                var query = db.Set<T>().AsQueryable();
+        // 2. Generic GET Endpoint (For everyone else)
+        MapGenericGet<T>(app, routePrefix, routeName, category);
 
-                // Apply search
-                if (!string.IsNullOrWhiteSpace(search))
-                {
-                    query = QueryService.ApplySearch(query, search);
-                }
-
-                // Apply filters
-                query = QueryService.ApplyFilters(query, request.Query);
-
-                // Apply sort
-                query = QueryService.ApplySort(query, sort, order);
-
-                // Get total count
-                var totalCount = await query.CountAsync();
-
-                // Apply pagination
-                var items = await query
-                    .Skip((pageNumber - 1) * size)
-                    .Take(size)
-                    .ToListAsync();
-
-                // Create result object
-                var result = new
-                {
-                    Items = items,
-                    TotalCount = totalCount,
-                    Page = pageNumber,
-                    PageSize = size,
-                    TotalPages = (int)Math.Ceiling(totalCount / (double)size)
-                };
-
-                return Results.Ok(result);
-            }
-            catch (DbUpdateException ex)
-            {
-                logger.LogError(ex, "Database error while fetching {EntityType}", typeof(T).Name);
-                throw new Exceptions.DatabaseException($"fetching", typeof(T).Name, ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                logger.LogError(ex, "Invalid operation while processing {EntityType}", typeof(T).Name);
-                throw new Exceptions.CustomException(
-                    $"Invalid operation: {ex.Message}",
-                    400,
-                    "INVALID_OPERATION",
-                    innerException: ex);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Unexpected error while fetching {EntityType}", typeof(T).Name);
-                throw new Exceptions.CustomException(
-                    $"Unexpected error: {ex.Message}",
-                    500,
-                    "INTERNAL_ERROR",
-                    innerException: ex);
-            }
-        });
-
-        // Apply Output Caching Policy
-        if (category == "Lookup" && typeof(T).Name != "LtLookupTableReferance")
+        // 3. Conditional CRUD Logic (POST/PUT/DELETE)
+        if (category == "Lookup" && entityName != "LtLookupTableReferance")
         {
-            // Apply 365-day expiration and tag with Entity Name for eviction
-            endpoint.CacheOutput(x => x.Expire(TimeSpan.FromDays(365)).Tag(typeof(T).Name));
-
-            // Map CRUD for Lookups (Generic) - EXCLUDING specific entities handled manually
-            switch (typeof(T).Name)
+            switch (entityName)
             {
                 case "LtMedicalSpecialty":
                     app.MapMedicalSpecialtyEndpoints();
@@ -311,93 +247,32 @@ public static class EndpointExtensions
                     app.MapTask3PriorityEndpoints();
                     break;
                 case "LtTask5Rate":
-                app.MapTask5RateEndpoints();
-                break;
-            case "LtProductServiceCategory":
-                app.MapProductServiceCategoryEndpoints();
-                break;
-            case "LtDentalTeethChart":
-            case "LtGradeAllowance":
-            case "LtGradeDeduction":
-            case "LtIcon":
-            case "LtInsuranceCoverage":
-                // Skip CRUD mapping for these entities (GET only)
-                break;
-            case "LtAbbreviation":
-                    // Handled manually in Program.cs (or could be moved here too)
-                    // Currently Program.cs calls MapAbbreviationEndpoints(), so we just skip here.
+                    app.MapTask5RateEndpoints();
                     break;
-                case "LtFiscalYear":
-                    app.MapFiscalYearEndpoints();
+                case "LtProductServiceCategory":
+                    app.MapProductServiceCategoryEndpoints();
                     break;
-                case "LtAccountingDocumentType":
-                    app.MapAccountingDocumentTypeEndpoints();
+
+                // Read-Only Endpoints (GET only)
+                case "LtDentalTeethChart":
+                case "LtGradeAllowance":
+                case "LtGradeDeduction":
+                case "LtIcon":
+                case "LtInsuranceCoverage":
                     break;
-                case "LtCurrency":
-                    app.MapCurrencyEndpoints();
+
+                // Handled in Program.cs
+                case "LtAbbreviation":
                     break;
+
+                // FiscalYear, DocType, Currency are handled loop-top, won't reach here.
+
                 default:
                     MapGenericLookupCrud<T>(app, routePrefix, routeName);
                     break;
             }
         }
-        else
-        {
-            // Default Policy - Cache for 5 mins but TAG it for eviction
-            endpoint.CacheOutput(x => x.Tag(typeof(T).Name));
-        }
-
-        endpoint.WithTags(category)
-        .WithName($"Get_{routeName}")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = $"Get all {routeName} / الحصول على جميع سجلات {routeName}";
-            operation.Description = $"Retrieve all {routeName} with optional filtering, searching, and sorting. / استرجاع جميع سجلات {routeName} مع إمكانية التصفية والبحث والفرز.";
-
-            // Add filter parameters for each property
-            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var prop in properties)
-            {
-                var propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                string schemaType = propType.Name switch
-                {
-                    "Int32" or "Int64" or "Int16" => "integer",
-                    "Double" or "Single" or "Decimal" => "number",
-                    "Boolean" => "boolean",
-                    "DateTime" => "string",
-                    _ => "string"
-                };
-
-                // Skip if parameter already exists (case-insensitive check)
-                if (operation.Parameters.Any(p => p.Name.Equals(prop.Name, StringComparison.OrdinalIgnoreCase)))
-                {
-                    continue;
-                }
-
-                // Skip generic params handled by route
-                // checking specific names that are arguments in the delegate
-                var knownParams = new[] { "search", "sort", "order", "page", "pageSize" };
-                if (knownParams.Contains(prop.Name, StringComparer.OrdinalIgnoreCase)) continue;
-
-                operation.Parameters.Add(new Microsoft.OpenApi.Models.OpenApiParameter
-                {
-                    Name = prop.Name,
-                    In = Microsoft.OpenApi.Models.ParameterLocation.Query,
-                    Description = $"Filter by {prop.Name}",
-                    Required = false,
-                    Schema = new Microsoft.OpenApi.Models.OpenApiSchema
-                    {
-                        Type = schemaType,
-                        Format = propType.Name == "DateTime" ? "date-time" : null
-                    }
-                });
-            }
-
-            return operation;
-        })
-        .RequireAuthorization();
     }
-
     #endregion
 
     #region System Mappings
@@ -454,8 +329,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Role / إنشاء دور جديد";
-            operation.Description = "Create a new role in the system. / إنشاء دور جديد في النظام.";
+            operation.Summary = "Create Role / Ø¥Ù†Ø´Ø§Ø¡ Ø¯ÙˆØ± Ø¬Ø¯ÙŠØ¯";
+            operation.Description = "Create a new role in the system. / Ø¥Ù†Ø´Ø§Ø¡ Ø¯ÙˆØ± Ø¬Ø¯ÙŠØ¯ ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù….";
             return operation;
         });
 
@@ -507,8 +382,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Update Role / تحديث دور";
-            operation.Description = "Update an existing role by ID. / تحديث بيانات دور موجود باستخدام المعرف.";
+            operation.Summary = "Update Role / ØªØ­Ø¯ÙŠØ« Ø¯ÙˆØ±";
+            operation.Description = "Update an existing role by ID. / ØªØ­Ø¯ÙŠØ« Ø¨ÙŠØ§Ù†Ø§Øª Ø¯ÙˆØ± Ù…ÙˆØ¬ÙˆØ¯ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
             return operation;
         });
 
@@ -542,8 +417,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Delete Role / حذف دور";
-            operation.Description = "Delete a role by ID. / حذف دور باستخدام المعرف.";
+            operation.Summary = "Delete Role / Ø­Ø°Ù Ø¯ÙˆØ±";
+            operation.Description = "Delete a role by ID. / Ø­Ø°Ù Ø¯ÙˆØ± Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
             return operation;
         });
 
@@ -631,8 +506,8 @@ public static class EndpointExtensions
         .WithName("Get_TblUsersAdmin")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Get all users with decrypted passwords (Admin) / الحصول على جميع المستخدمين مع كلمات المرور (أدمن)";
-            operation.Description = "Retrieve all users with decrypted passwords. / استرجاع جميع المستخدمين مع عرض كلمات المرور مفكوكة التشفير.";
+            operation.Summary = "Get all users with decrypted passwords (Admin) / Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ù…Ø¹ ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø±ÙˆØ± (Ø£Ø¯Ù…Ù†)";
+            operation.Description = "Retrieve all users with decrypted passwords. / Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ù…Ø¹ Ø¹Ø±Ø¶ ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø±ÙˆØ± Ù…ÙÙƒÙˆÙƒØ© Ø§Ù„ØªØ´ÙÙŠØ±.";
             return operation;
         });
 
@@ -690,8 +565,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create User / إنشاء مستخدم جديد";
-            operation.Description = "Create a new user in the system. / إنشاء مستخدم جديد في النظام.";
+            operation.Summary = "Create User / Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø³ØªØ®Ø¯Ù… Ø¬Ø¯ÙŠØ¯";
+            operation.Description = "Create a new user in the system. / Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø³ØªØ®Ø¯Ù… Ø¬Ø¯ÙŠØ¯ ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù….";
             return operation;
         });
 
@@ -781,8 +656,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Update User / تحديث مستخدم";
-            operation.Description = "Update an existing user by ID. / تحديث بيانات مستخدم موجود باستخدام المعرف.";
+            operation.Summary = "Update User / ØªØ­Ø¯ÙŠØ« Ù…Ø³ØªØ®Ø¯Ù…";
+            operation.Description = "Update an existing user by ID. / ØªØ­Ø¯ÙŠØ« Ø¨ÙŠØ§Ù†Ø§Øª Ù…Ø³ØªØ®Ø¯Ù… Ù…ÙˆØ¬ÙˆØ¯ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
             return operation;
         });
 
@@ -817,8 +692,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Delete User / حذف مستخدم";
-            operation.Description = "Delete a user by ID. / حذف مستخدم باستخدام المعرف.";
+            operation.Summary = "Delete User / Ø­Ø°Ù Ù…Ø³ØªØ®Ø¯Ù…";
+            operation.Description = "Delete a user by ID. / Ø­Ø°Ù Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
             return operation;
         });
 
@@ -883,8 +758,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Assign Role to User / تعيين دور للمستخدم";
-            operation.Description = "Assign a role to a specific user. / تعيين دور محدد لمستخدم.";
+            operation.Summary = "Assign Role to User / ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù…";
+            operation.Description = "Assign a role to a specific user. / ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ù…Ø­Ø¯Ø¯ Ù„Ù…Ø³ØªØ®Ø¯Ù….";
             return operation;
         });
 
@@ -909,8 +784,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Get User Role by ID / الحصول على دور المستخدم (بالمعرف)";
-            operation.Description = "Get details of a user role assignment. / الحصول على تفاصيل تعيين دور المستخدم.";
+            operation.Summary = "Get User Role by ID / Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… (Ø¨Ø§Ù„Ù…Ø¹Ø±Ù)";
+            operation.Description = "Get details of a user role assignment. / Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ ØªÙØ§ØµÙŠÙ„ ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….";
             return operation;
         });
 
@@ -962,8 +837,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Update User Role / تحديث دور المستخدم";
-            operation.Description = "Update a user role assignment. / تحديث تعيين دور المستخدم.";
+            operation.Summary = "Update User Role / ØªØ­Ø¯ÙŠØ« Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…";
+            operation.Description = "Update a user role assignment. / ØªØ­Ø¯ÙŠØ« ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….";
             return operation;
         });
 
@@ -997,8 +872,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Delete User Role / حذف دور المستخدم";
-            operation.Description = "Remove a role assignment from a user. / إزالة تعيين دور من مستخدم.";
+            operation.Summary = "Delete User Role / Ø­Ø°Ù Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…";
+            operation.Description = "Remove a role assignment from a user. / Ø¥Ø²Ø§Ù„Ø© ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ù…Ù† Ù…Ø³ØªØ®Ø¯Ù….";
             return operation;
         });
 
@@ -1109,7 +984,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = $"Create {typeof(T).Name} / إنشاء سجل جديد";
+            operation.Summary = $"Create {typeof(T).Name} / Ø¥Ù†Ø´Ø§Ø¡ Ø³Ø¬Ù„ Ø¬Ø¯ÙŠØ¯";
             operation.Description = "Create a new record with auto-generated code.";
             return operation;
         });
@@ -1184,7 +1059,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = $"Update {typeof(T).Name} / تحديث سجل";
+            operation.Summary = $"Update {typeof(T).Name} / ØªØ­Ø¯ÙŠØ« Ø³Ø¬Ù„";
             return operation;
         });
 
@@ -1222,7 +1097,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = $"Delete {typeof(T).Name} / حذف سجل";
+            operation.Summary = $"Delete {typeof(T).Name} / Ø­Ø°Ù Ø³Ø¬Ù„";
             return operation;
         });
     }
@@ -1275,7 +1150,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Abbreviation / إنشاء اختصار";
+            operation.Summary = "Create Abbreviation / Ø¥Ù†Ø´Ø§Ø¡ Ø§Ø®ØªØµØ§Ø±";
             operation.Description = "Create a new abbreviation (Explicit).";
             return operation;
         });
@@ -1471,7 +1346,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Medical Specialty / إنشاء تخصص طبي";
+            operation.Summary = "Create Medical Specialty / Ø¥Ù†Ø´Ø§Ø¡ ØªØ®ØµØµ Ø·Ø¨ÙŠ";
             operation.Description = "Create a new medical specialty with logo support.";
             return operation;
         });
@@ -1533,7 +1408,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Update Medical Specialty / تحديث تخصص طبي";
+            operation.Summary = "Update Medical Specialty / ØªØ­Ø¯ÙŠØ« ØªØ®ØµØµ Ø·Ø¨ÙŠ";
             return operation;
         });
 
@@ -1768,6 +1643,9 @@ public static class EndpointExtensions
 
     public static WebApplication MapFiscalYearEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtFiscalYear>(app, "lookup", "ltfiscalyears", "Lookup");
+
         var group = app.MapGroup("/api/lookup/ltfiscalyears").RequireAuthorization();
 
         // POST
@@ -1815,7 +1693,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Fiscal Year / إنشاء سنة مالية";
+            operation.Summary = "Create Fiscal Year / Ø¥Ù†Ø´Ø§Ø¡ Ø³Ù†Ø© Ù…Ø§Ù„ÙŠØ©";
             operation.Description = "Auto-generates dates based on the year in the generated code.";
             return operation;
         });
@@ -1864,6 +1742,9 @@ public static class EndpointExtensions
 
     public static WebApplication MapAccountingDocumentTypeEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtAccountingDocumentType>(app, "lookup", "ltaccountingdocumenttypes", "Lookup");
+
         var group = app.MapGroup("/api/lookup/ltaccountingdocumenttypes").RequireAuthorization();
 
         // POST
@@ -1907,7 +1788,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Accounting Document Type / إنشاء نوع مستند محاسبي";
+            operation.Summary = "Create Accounting Document Type / Ø¥Ù†Ø´Ø§Ø¡ Ù†ÙˆØ¹ Ù…Ø³ØªÙ†Ø¯ Ù…Ø­Ø§Ø³Ø¨ÙŠ";
             operation.Description = "Creates a new accounting document type with validation on DocumentBreif length.";
             return operation;
         });
@@ -1962,6 +1843,9 @@ public static class EndpointExtensions
 
     public static WebApplication MapCurrencyEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtCurrency>(app, "lookup", "ltcurrencies", "Lookup");
+
         var group = app.MapGroup("/api/lookup/ltcurrencies").RequireAuthorization();
 
         // POST
@@ -2006,7 +1890,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Currency / إنشاء عملة";
+            operation.Summary = "Create Currency / Ø¥Ù†Ø´Ø§Ø¡ Ø¹Ù…Ù„Ø©";
             operation.Description = "Creates a new currency with validation on CurrencyCode1 length.";
             return operation;
         });
@@ -2066,8 +1950,128 @@ public static class EndpointExtensions
     #region Helpers
 
     /// <summary>
-    /// Helper to find a Lookup Table Reference by Name (checking exact and spaced variants)
+    /// Map a generic GET endpoint for an entity type
     /// </summary>
+    public static void MapGenericGet<T>(WebApplication app, string routePrefix, string routeName, string category) where T : class
+    {
+        var group = app.MapGroup(routePrefix);
+
+        var endpoint = group.MapGet($"/{routeName}", async (ClinicDbContext db, HttpContext ctx) =>
+        {
+            var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
+            try
+            {
+                var query = db.Set<T>().AsQueryable();
+
+                // 1. Filtering (Dynamic from Query)
+                var propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                foreach (var prop in propertyInfos)
+                {
+                    if (ctx.Request.Query.TryGetValue(prop.Name, out var value) && !string.IsNullOrEmpty(value))
+                    {
+                        try
+                        {
+                            var converter = System.ComponentModel.TypeDescriptor.GetConverter(prop.PropertyType);
+                            var convertedValue = converter.ConvertFromString(value.ToString());
+                            query = query.Where(e => EF.Property<object>(e, prop.Name).Equals(convertedValue));
+                        }
+                        catch { /* Ignore conversion errors */ }
+                    }
+                }
+
+                // 2. Searching
+                if (ctx.Request.Query.TryGetValue("search", out var search) && !string.IsNullOrEmpty(search))
+                {
+                    query = QueryService.ApplySearch(query, search.ToString());
+                }
+
+                // 3. Sorting
+                // Safe dictionary lookups
+                string sort = ctx.Request.Query.TryGetValue("sort", out var sVal) ? sVal.ToString() : "";
+                string order = ctx.Request.Query.TryGetValue("order", out var oVal) ? oVal.ToString() : "";
+
+                if (!string.IsNullOrEmpty(sort))
+                {
+                    query = QueryService.ApplySort(query, sort, order);
+                }
+
+                // 4. Pagination
+                int pageNumber = int.TryParse(ctx.Request.Query["page"], out var p) ? p : 1;
+                int size = int.TryParse(ctx.Request.Query["pageSize"], out var s) ? s : 10;
+
+                var totalCount = await query.CountAsync();
+                var items = await query.Skip((pageNumber - 1) * size).Take(size).ToListAsync();
+
+                var result = new
+                {
+                    Items = items,
+                    TotalCount = totalCount,
+                    Page = pageNumber,
+                    PageSize = size,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)size)
+                };
+
+                return Results.Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        });
+
+        // Apply Caching
+        if (category == "Lookup" && typeof(T).Name != "LtLookupTableReferance")
+        {
+            endpoint.CacheOutput(x => x.Expire(TimeSpan.FromDays(365)).Tag(typeof(T).Name));
+        }
+        else
+        {
+            endpoint.CacheOutput(x => x.Tag(typeof(T).Name));
+        }
+
+        endpoint.WithTags(category)
+        .WithName($"Get_{routeName}")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = $"Get all {routeName}";
+            operation.Description = $"Retrieve all {routeName} with optional filtering, searching, and sorting.";
+
+            // Add params logic
+            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            foreach (var prop in properties)
+            {
+                var propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                string schemaType = propType.Name switch
+                {
+                    "Int32" or "Int64" or "Int16" => "integer",
+                    "Double" or "Single" or "Decimal" => "number",
+                    "Boolean" => "boolean",
+                    "DateTime" => "string",
+                    _ => "string"
+                };
+
+                if (operation.Parameters.Any(p => p.Name.Equals(prop.Name, StringComparison.OrdinalIgnoreCase))) continue;
+
+                var knownParams = new[] { "search", "sort", "order", "page", "pageSize" };
+                if (knownParams.Contains(prop.Name, StringComparer.OrdinalIgnoreCase)) continue;
+
+                operation.Parameters.Add(new Microsoft.OpenApi.Models.OpenApiParameter
+                {
+                    Name = prop.Name,
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Query,
+                    Description = $"Filter by {prop.Name}",
+                    Required = false,
+                    Schema = new Microsoft.OpenApi.Models.OpenApiSchema
+                    {
+                        Type = schemaType,
+                        Format = propType.Name == "DateTime" ? "date-time" : null
+                    }
+                });
+            }
+            return operation;
+        })
+        .RequireAuthorization();
+    }
     private static async Task<LtLookupTableReferance?> GetLookupReferenceAsync(ClinicDbContext db, string refName)
     {
         var refTable = await db.LtLookupTableReferances.FirstOrDefaultAsync(r => r.NameEn == refName);
