@@ -984,8 +984,8 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = $"Create {typeof(T).Name} / Ø¥Ù†Ø´Ø§Ø¡ Ø³Ø¬Ù„ Ø¬Ø¯ÙŠØ¯";
-            operation.Description = "Create a new record with auto-generated code.";
+            operation.Summary = $"Create {typeof(T).Name} / إنشاء سجل جديد";
+            operation.Description = "Create a new record with auto-generated code. / إنشاء سجل جديد مع إنشاء كود تلقائي.";
             return operation;
         });
 
@@ -1059,7 +1059,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = $"Update {typeof(T).Name} / ØªØ­Ø¯ÙŠØ« Ø³Ø¬Ù„";
+            operation.Summary = $"Update {typeof(T).Name} / تحديث سجل";
             return operation;
         });
 
@@ -1097,7 +1097,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = $"Delete {typeof(T).Name} / Ø­Ø°Ù Ø³Ø¬Ù„";
+            operation.Summary = $"Delete {typeof(T).Name} / حذف سجل";
             return operation;
         });
     }
