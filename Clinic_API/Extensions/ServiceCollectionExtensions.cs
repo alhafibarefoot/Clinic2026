@@ -45,6 +45,9 @@ public static class ServiceCollectionExtensions
         // ProblemDetails for standardized error responses
         services.AddProblemDetails();
 
+        // Antiforgery (Required for [FromForm])
+        services.AddAntiforgery();
+
         return services;
     }
 

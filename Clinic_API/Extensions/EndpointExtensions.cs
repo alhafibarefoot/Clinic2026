@@ -7,10 +7,12 @@ using Clinic2026_API.Models.System;
 using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
 using System.Net.Sockets;
+using Microsoft.AspNetCore.Http;
 
 namespace Clinic2026_API.Extensions;
 
 using Clinic2026_API.Models.Lookup;
+using Microsoft.AspNetCore.Mvc;
 
 /// <summary>
 /// Extension methods for mapping API endpoints
@@ -51,7 +53,7 @@ public static class EndpointExtensions
     {
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
-        public string? MedicalTypeLogo { get; set; }
+        public IFormFile? MedicalTypeLogo { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -61,7 +63,7 @@ public static class EndpointExtensions
         public string NameAr { get; set; } = null!; // Changed from string?
         public bool IsCreditCard { get; set; } // Changed from bool?
         public bool IsLoyalityCard { get; set; } // Changed from bool?
-        public string? PaymentTypeLogo { get; set; }
+        public IFormFile? PaymentTypeLogo { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -69,7 +71,7 @@ public static class EndpointExtensions
     {
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
-        public string? ChannalPhoto { get; set; }
+        public IFormFile? ChannalPhoto { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -77,7 +79,7 @@ public static class EndpointExtensions
     {
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
-        public string? ImpactImage { get; set; }
+        public IFormFile? ImpactImage { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -85,7 +87,7 @@ public static class EndpointExtensions
     {
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
-        public string? UrgencyImage { get; set; }
+        public IFormFile? UrgencyImage { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -93,7 +95,7 @@ public static class EndpointExtensions
     {
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
-        public string? ImagePriority { get; set; }
+        public IFormFile? ImagePriority { get; set; }
         public int? HourServe { get; set; }
         public bool IsDefault { get; set; } // Changed from bool?
         public bool? IsActive { get; set; }
@@ -103,7 +105,7 @@ public static class EndpointExtensions
     {
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
-        public string? RatingImage { get; set; }
+        public IFormFile? RatingImage { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -1330,7 +1332,7 @@ public static class EndpointExtensions
             ClinicDbContext db,
             IOutputCacheStore cacheStore,
             HttpContext httpContext,
-            MedicalSpecialtyDto dto) =>
+            [FromForm] MedicalSpecialtyDto dto) =>
         {
             try
             {
@@ -1340,21 +1342,8 @@ public static class EndpointExtensions
 
                 string newCode = GenerateNextCode(refTable);
 
-                // 3. Handle Logo (Base64 -> Byte[])
-                byte[]? logoBytes = null;
-                if (!string.IsNullOrEmpty(dto.MedicalTypeLogo) && dto.MedicalTypeLogo != "string")
-                {
-                    try
-                    {
-                        var base64 = dto.MedicalTypeLogo;
-                        if (base64.Contains(",")) base64 = base64.Split(',')[1];
-                        logoBytes = Convert.FromBase64String(base64);
-                    }
-                    catch
-                    {
-                       return Results.BadRequest("Invalid Base64 string for MedicalTypeLogo.");
-                    }
-                }
+                // 3. Handle Logo
+                byte[]? logoBytes = await ConvertFileToBytesAsync(dto.MedicalTypeLogo);
 
                 // 4. Create Entity
                 var entity = new LtMedicalSpecialty
@@ -1387,7 +1376,8 @@ public static class EndpointExtensions
             operation.Summary = "Create Medical Specialty / Ø¥Ù†Ø´Ø§Ø¡ ØªØ®ØµØµ Ø·Ø¨ÙŠ";
             operation.Description = "Create a new medical specialty with logo support.";
             return operation;
-        });
+        })
+        .DisableAntiforgery();
 
         // PUT Update MedicalSpecialty
         group.MapPut("/{code}", async (
@@ -1395,7 +1385,7 @@ public static class EndpointExtensions
             IOutputCacheStore cacheStore,
             HttpContext httpContext,
             string code,
-            MedicalSpecialtyDto dto) =>
+            [FromForm] MedicalSpecialtyDto dto) =>
         {
             try
             {
@@ -1412,23 +1402,7 @@ public static class EndpointExtensions
                 // Handle Logo Update
                 if (dto.MedicalTypeLogo != null) // Only update if provided
                 {
-                    if (string.IsNullOrEmpty(dto.MedicalTypeLogo) || dto.MedicalTypeLogo == "string")
-                    {
-                         if (dto.MedicalTypeLogo == "") entity.MedicalTypeLogo = null;
-                    }
-                    else
-                    {
-                        try
-                        {
-                            var base64 = dto.MedicalTypeLogo;
-                            if (base64.Contains(",")) base64 = base64.Split(',')[1];
-                            entity.MedicalTypeLogo = Convert.FromBase64String(base64);
-                        }
-                        catch
-                        {
-                             return Results.BadRequest("Invalid Base64 string for MedicalTypeLogo.");
-                        }
-                    }
+                    entity.MedicalTypeLogo = await ConvertFileToBytesAsync(dto.MedicalTypeLogo);
                 }
 
                 SetAuditFields(entity, httpContext, isUpdate: true);
@@ -1495,7 +1469,7 @@ public static class EndpointExtensions
         var group = app.MapGroup("/api/lookup/ltpaymentmethods").RequireAuthorization();
 
         // POST
-        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, PaymentMethodDto dto) =>
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, [FromForm] PaymentMethodDto dto) =>
         {
             try {
                 var refTable = await GetLookupReferenceAsync(db, "PaymentMethod");
@@ -1510,7 +1484,7 @@ public static class EndpointExtensions
                     NameAr = dto.NameAr,
                     IsCreditCard = dto.IsCreditCard,
                     IsLoyalityCard = dto.IsLoyalityCard,
-                    PaymentTypeLogo = ConvertBase64ToBytes(dto.PaymentTypeLogo),
+                    PaymentTypeLogo = await ConvertFileToBytesAsync(dto.PaymentTypeLogo),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1521,10 +1495,12 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtPaymentMethod", default);
                 return Results.Created($"/api/lookup/ltpaymentmethods/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup");
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup");
 
         // PUT
-        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, PaymentMethodDto dto) =>
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, [FromForm] PaymentMethodDto dto) =>
         {
             try {
                 var entity = await db.LtPaymentMethods.FirstOrDefaultAsync(x => x.PaymentMethodCode == code);
@@ -1534,7 +1510,7 @@ public static class EndpointExtensions
                 entity.NameAr = dto.NameAr;
                 entity.IsCreditCard = dto.IsCreditCard;
                 entity.IsLoyalityCard = dto.IsLoyalityCard;
-                if (!string.IsNullOrEmpty(dto.PaymentTypeLogo)) entity.PaymentTypeLogo = ConvertBase64ToBytes(dto.PaymentTypeLogo);
+                if (dto.PaymentTypeLogo != null) entity.PaymentTypeLogo = await ConvertFileToBytesAsync(dto.PaymentTypeLogo);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1542,7 +1518,9 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtPaymentMethod", default);
                 return Results.Ok(entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Payment Method / تحديث طريقة دفع"; return op; });
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Payment Method / تحديث طريقة دفع"; return op; });
 
         // DELETE
         group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
@@ -1568,7 +1546,7 @@ public static class EndpointExtensions
         var group = app.MapGroup("/api/lookup/ltrequest2channals").RequireAuthorization();
 
         // POST
-        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, RequestChannelDto dto) =>
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, [FromForm] RequestChannelDto dto) =>
         {
             try {
                 var refTable = await GetLookupReferenceAsync(db, "Request2Channal");
@@ -1581,7 +1559,7 @@ public static class EndpointExtensions
                     RequestTypeChannal = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    ChannalPhoto = ConvertBase64ToBytes(dto.ChannalPhoto),
+                    ChannalPhoto = await ConvertFileToBytesAsync(dto.ChannalPhoto),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1592,10 +1570,12 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtRequest2Channal", default);
                 return Results.Created($"/api/lookup/ltrequest2channals/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup");
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup");
 
         // PUT
-        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, RequestChannelDto dto) =>
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, [FromForm] RequestChannelDto dto) =>
         {
             try {
                 var entity = await db.LtRequest2Channals.FirstOrDefaultAsync(x => x.RequestTypeChannal == code);
@@ -1603,7 +1583,7 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (!string.IsNullOrEmpty(dto.ChannalPhoto)) entity.ChannalPhoto = ConvertBase64ToBytes(dto.ChannalPhoto);
+                if (dto.ChannalPhoto != null) entity.ChannalPhoto = await ConvertFileToBytesAsync(dto.ChannalPhoto);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1611,7 +1591,9 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtRequest2Channal", default);
                 return Results.Ok(entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Request Channel / تحديث قناة طلب"; return op; });
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Request Channel / تحديث قناة طلب"; return op; });
 
         // DELETE
         group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
@@ -1637,7 +1619,7 @@ public static class EndpointExtensions
         var group = app.MapGroup("/api/lookup/lttask1impacts").RequireAuthorization();
 
         // POST
-        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskImpactDto dto) =>
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, [FromForm] TaskImpactDto dto) =>
         {
             try {
                 var refTable = await GetLookupReferenceAsync(db, "Task1Impact");
@@ -1650,7 +1632,7 @@ public static class EndpointExtensions
                     ImpactCode = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    ImpactImage = ConvertBase64ToBytes(dto.ImpactImage),
+                    ImpactImage = await ConvertFileToBytesAsync(dto.ImpactImage),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1661,10 +1643,12 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtTask1Impact", default);
                 return Results.Created($"/api/lookup/lttask1impacts/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup");
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup");
 
         // PUT
-        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, TaskImpactDto dto) =>
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, [FromForm] TaskImpactDto dto) =>
         {
             try {
                 var entity = await db.LtTask1Impacts.FirstOrDefaultAsync(x => x.ImpactCode == code);
@@ -1672,7 +1656,7 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (!string.IsNullOrEmpty(dto.ImpactImage)) entity.ImpactImage = ConvertBase64ToBytes(dto.ImpactImage);
+                if (dto.ImpactImage != null) entity.ImpactImage = await ConvertFileToBytesAsync(dto.ImpactImage);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1680,7 +1664,9 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtTask1Impact", default);
                 return Results.Ok(entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Impact / تحديث أثر المهمة"; return op; });
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Impact / تحديث أثر المهمة"; return op; });
 
         // DELETE
         group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
@@ -1706,7 +1692,7 @@ public static class EndpointExtensions
         var group = app.MapGroup("/api/lookup/lttask2urgencies").RequireAuthorization();
 
         // POST
-        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskUrgencyDto dto) =>
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, [FromForm] TaskUrgencyDto dto) =>
         {
             try {
                 var refTable = await GetLookupReferenceAsync(db, "Task2Urgency");
@@ -1719,7 +1705,7 @@ public static class EndpointExtensions
                     UrgencyCode = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    UrgencyImage = ConvertBase64ToBytes(dto.UrgencyImage),
+                    UrgencyImage = await ConvertFileToBytesAsync(dto.UrgencyImage),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1730,10 +1716,12 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtTask2Urgency", default);
                 return Results.Created($"/api/lookup/lttask2urgencies/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup");
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup");
 
         // PUT
-        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, TaskUrgencyDto dto) =>
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, [FromForm] TaskUrgencyDto dto) =>
         {
             try {
                 var entity = await db.LtTask2Urgencies.FirstOrDefaultAsync(x => x.UrgencyCode == code);
@@ -1741,7 +1729,7 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (!string.IsNullOrEmpty(dto.UrgencyImage)) entity.UrgencyImage = ConvertBase64ToBytes(dto.UrgencyImage);
+                if (dto.UrgencyImage != null) entity.UrgencyImage = await ConvertFileToBytesAsync(dto.UrgencyImage);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1749,7 +1737,9 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtTask2Urgency", default);
                 return Results.Ok(entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Urgency / تحديث استعجال المهمة"; return op; });
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Urgency / تحديث استعجال المهمة"; return op; });
 
         // DELETE
         group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
@@ -1775,7 +1765,7 @@ public static class EndpointExtensions
         var group = app.MapGroup("/api/lookup/lttask3priorities").RequireAuthorization();
 
         // POST
-        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskPriorityDto dto) =>
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, [FromForm] TaskPriorityDto dto) =>
         {
             try {
                 var refTable = await GetLookupReferenceAsync(db, "Task3Priority");
@@ -1788,7 +1778,7 @@ public static class EndpointExtensions
                     PriorityCode = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    ImagePriority = ConvertBase64ToBytes(dto.ImagePriority),
+                    ImagePriority = await ConvertFileToBytesAsync(dto.ImagePriority),
                     HourServe = dto.HourServe,
                     IsDefault = dto.IsDefault,
                     IsActive = dto.IsActive ?? true
@@ -1801,10 +1791,12 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtTask3Priority", default);
                 return Results.Created($"/api/lookup/lttask3priorities/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup");
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup");
 
         // PUT
-        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, TaskPriorityDto dto) =>
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, [FromForm] TaskPriorityDto dto) =>
         {
             try {
                 var entity = await db.LtTask3Priorities.FirstOrDefaultAsync(x => x.PriorityCode == code);
@@ -1812,7 +1804,7 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (!string.IsNullOrEmpty(dto.ImagePriority)) entity.ImagePriority = ConvertBase64ToBytes(dto.ImagePriority);
+                if (dto.ImagePriority != null) entity.ImagePriority = await ConvertFileToBytesAsync(dto.ImagePriority);
                 entity.HourServe = dto.HourServe;
                 entity.IsDefault = dto.IsDefault;
                 entity.IsActive = dto.IsActive;
@@ -1822,7 +1814,9 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtTask3Priority", default);
                 return Results.Ok(entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Priority / تحديث أولوية المهمة"; return op; });
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Priority / تحديث أولوية المهمة"; return op; });
 
         // DELETE
         group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
@@ -1848,7 +1842,7 @@ public static class EndpointExtensions
         var group = app.MapGroup("/api/lookup/lttask5rates").RequireAuthorization();
 
         // POST
-        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskRateDto dto) =>
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, [FromForm] TaskRateDto dto) =>
         {
             try {
                 var refTable = await GetLookupReferenceAsync(db, "Task5Rate");
@@ -1861,7 +1855,7 @@ public static class EndpointExtensions
                     RatingCode = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    RatingImage = ConvertBase64ToBytes(dto.RatingImage),
+                    RatingImage = await ConvertFileToBytesAsync(dto.RatingImage),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1872,10 +1866,12 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtTask5Rate", default);
                 return Results.Created($"/api/lookup/lttask5rates/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup");
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup");
 
         // PUT
-        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, TaskRateDto dto) =>
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, [FromForm] TaskRateDto dto) =>
         {
             try {
                 var entity = await db.LtTask5Rates.FirstOrDefaultAsync(x => x.RatingCode == code);
@@ -1883,7 +1879,7 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (!string.IsNullOrEmpty(dto.RatingImage)) entity.RatingImage = ConvertBase64ToBytes(dto.RatingImage);
+                if (dto.RatingImage != null) entity.RatingImage = await ConvertFileToBytesAsync(dto.RatingImage);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1891,7 +1887,9 @@ public static class EndpointExtensions
                 await cache.EvictByTagAsync("LtTask5Rate", default);
                 return Results.Ok(entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
-        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Rate / تحديث تقييم المهمة"; return op; });
+        })
+        .DisableAntiforgery()
+        .WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Rate / تحديث تقييم المهمة"; return op; });
 
         // DELETE
         group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
@@ -2429,7 +2427,7 @@ public static class EndpointExtensions
         type.GetProperty("Ipaddress")?.SetValue(entity, currentIp); // Standardize property name casing
     }
 
-    // Helper for Base64 Conversion
+    // Helper for Base64 Conversion (Deprecated or fallback)
     private static byte[]? ConvertBase64ToBytes(string? base64String)
     {
         if (string.IsNullOrEmpty(base64String) || base64String == "string") return null;
@@ -2442,6 +2440,15 @@ public static class EndpointExtensions
         {
             return null;
         }
+    }
+
+    // Helper for file to bytes conversion
+    private static async Task<byte[]?> ConvertFileToBytesAsync(IFormFile? file)
+    {
+        if (file == null || file.Length == 0) return null;
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        return ms.ToArray();
     }
 
     #endregion

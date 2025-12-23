@@ -23,6 +23,7 @@ app.ConfigureMiddleware();
 // Enable Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
 // Map API endpoints
 app.MapAuthEndpoints();
