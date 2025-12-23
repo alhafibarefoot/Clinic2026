@@ -221,6 +221,27 @@ public static class EndpointExtensions
             case "LtAbbreviation":
                 app.MapAbbreviationEndpoints();
                 return;
+            case "LtPaymentMethod":
+                app.MapPaymentMethodEndpoints();
+                return;
+            case "LtRequest2Channal":
+                app.MapRequestChannelEndpoints();
+                return;
+            case "LtTask1Impact":
+                app.MapTask1ImpactEndpoints();
+                return;
+            case "LtTask2Urgency":
+                app.MapTask2UrgencyEndpoints();
+                return;
+            case "LtTask3Priority":
+                app.MapTask3PriorityEndpoints();
+                return;
+            case "LtTask5Rate":
+                app.MapTask5RateEndpoints();
+                return;
+            case "LtProductServiceCategory":
+                app.MapProductServiceCategoryEndpoints();
+                return;
         }
 
         // 2. Generic GET Endpoint (For everyone else)
@@ -233,27 +254,6 @@ public static class EndpointExtensions
             {
                 case "LtMedicalSpecialty":
                     app.MapMedicalSpecialtyEndpoints();
-                    break;
-                case "LtPaymentMethod":
-                    app.MapPaymentMethodEndpoints();
-                    break;
-                case "LtRequest2Channal":
-                    app.MapRequestChannelEndpoints();
-                    break;
-                case "LtTask1Impact":
-                    app.MapTask1ImpactEndpoints();
-                    break;
-                case "LtTask2Urgency":
-                    app.MapTask2UrgencyEndpoints();
-                    break;
-                case "LtTask3Priority":
-                    app.MapTask3PriorityEndpoints();
-                    break;
-                case "LtTask5Rate":
-                    app.MapTask5RateEndpoints();
-                    break;
-                case "LtProductServiceCategory":
-                    app.MapProductServiceCategoryEndpoints();
                     break;
 
                 // Read-Only Endpoints (GET only)
@@ -1223,6 +1223,9 @@ public static class EndpointExtensions
     }
     public static WebApplication MapProductServiceCategoryEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtProductServiceCategory>(app, "lookup", "ltproductservicecategories", "Lookup");
+
         var group = app.MapGroup("/api/lookup/ltproductservicecategories").RequireAuthorization();
 
         // POST Create ProductServiceCategory
@@ -1282,6 +1285,38 @@ public static class EndpointExtensions
             }
         })
         .WithTags("Lookup");
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, ProductServiceCategoryDto dto) =>
+        {
+            try {
+                var entity = await db.LtProductServiceCategories.FirstOrDefaultAsync(x => x.CategoryCode == code);
+                if (entity == null) return Results.NotFound();
+
+                // Allow updating descriptive fields only, not structural codes
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, true);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtProductServiceCategory", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Category / تحديث فئة"; return op; });
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try {
+                var entity = await db.LtProductServiceCategories.FirstOrDefaultAsync(x => x.CategoryCode == code);
+                if (entity == null) return Results.NotFound();
+                db.LtProductServiceCategories.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtProductServiceCategory", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Delete Category / حذف فئة"; return op; });
 
         return app;
     }
@@ -1454,8 +1489,12 @@ public static class EndpointExtensions
 
     public static WebApplication MapPaymentMethodEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtPaymentMethod>(app, "lookup", "ltpaymentmethods", "Lookup");
+
         var group = app.MapGroup("/api/lookup/ltpaymentmethods").RequireAuthorization();
 
+        // POST
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, PaymentMethodDto dto) =>
         {
             try {
@@ -1484,12 +1523,51 @@ public static class EndpointExtensions
             } catch (Exception ex) { return Results.Problem(ex.Message); }
         }).WithTags("Lookup");
 
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, PaymentMethodDto dto) =>
+        {
+            try {
+                var entity = await db.LtPaymentMethods.FirstOrDefaultAsync(x => x.PaymentMethodCode == code);
+                if (entity == null) return Results.NotFound();
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                entity.IsCreditCard = dto.IsCreditCard;
+                entity.IsLoyalityCard = dto.IsLoyalityCard;
+                if (!string.IsNullOrEmpty(dto.PaymentTypeLogo)) entity.PaymentTypeLogo = ConvertBase64ToBytes(dto.PaymentTypeLogo);
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, true);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtPaymentMethod", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Payment Method / تحديث طريقة دفع"; return op; });
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try {
+                var entity = await db.LtPaymentMethods.FirstOrDefaultAsync(x => x.PaymentMethodCode == code);
+                if (entity == null) return Results.NotFound();
+                db.LtPaymentMethods.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtPaymentMethod", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Delete Payment Method / حذف طريقة دفع"; return op; });
+
         return app;
     }
 
     public static WebApplication MapRequestChannelEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtRequest2Channal>(app, "lookup", "ltrequest2channals", "Lookup");
+
         var group = app.MapGroup("/api/lookup/ltrequest2channals").RequireAuthorization();
+
+        // POST
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, RequestChannelDto dto) =>
         {
             try {
@@ -1515,12 +1593,50 @@ public static class EndpointExtensions
                 return Results.Created($"/api/lookup/ltrequest2channals/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
         }).WithTags("Lookup");
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, RequestChannelDto dto) =>
+        {
+            try {
+                var entity = await db.LtRequest2Channals.FirstOrDefaultAsync(x => x.RequestTypeChannal == code);
+                if (entity == null) return Results.NotFound();
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                if (!string.IsNullOrEmpty(dto.ChannalPhoto)) entity.ChannalPhoto = ConvertBase64ToBytes(dto.ChannalPhoto);
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, true);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtRequest2Channal", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Request Channel / تحديث قناة طلب"; return op; });
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try {
+                var entity = await db.LtRequest2Channals.FirstOrDefaultAsync(x => x.RequestTypeChannal == code);
+                if (entity == null) return Results.NotFound();
+                db.LtRequest2Channals.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtRequest2Channal", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Delete Request Channel / حذف قناة طلب"; return op; });
+
         return app;
     }
 
     public static WebApplication MapTask1ImpactEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtTask1Impact>(app, "lookup", "lttask1impacts", "Lookup");
+
         var group = app.MapGroup("/api/lookup/lttask1impacts").RequireAuthorization();
+
+        // POST
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskImpactDto dto) =>
         {
             try {
@@ -1546,12 +1662,50 @@ public static class EndpointExtensions
                 return Results.Created($"/api/lookup/lttask1impacts/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
         }).WithTags("Lookup");
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, TaskImpactDto dto) =>
+        {
+            try {
+                var entity = await db.LtTask1Impacts.FirstOrDefaultAsync(x => x.ImpactCode == code);
+                if (entity == null) return Results.NotFound();
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                if (!string.IsNullOrEmpty(dto.ImpactImage)) entity.ImpactImage = ConvertBase64ToBytes(dto.ImpactImage);
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, true);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask1Impact", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Impact / تحديث أثر المهمة"; return op; });
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try {
+                var entity = await db.LtTask1Impacts.FirstOrDefaultAsync(x => x.ImpactCode == code);
+                if (entity == null) return Results.NotFound();
+                db.LtTask1Impacts.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask1Impact", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Delete Task Impact / حذف أثر المهمة"; return op; });
+
         return app;
     }
 
     public static WebApplication MapTask2UrgencyEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtTask2Urgency>(app, "lookup", "lttask2urgencies", "Lookup");
+
         var group = app.MapGroup("/api/lookup/lttask2urgencies").RequireAuthorization();
+
+        // POST
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskUrgencyDto dto) =>
         {
             try {
@@ -1577,12 +1731,50 @@ public static class EndpointExtensions
                 return Results.Created($"/api/lookup/lttask2urgencies/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
         }).WithTags("Lookup");
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, TaskUrgencyDto dto) =>
+        {
+            try {
+                var entity = await db.LtTask2Urgencies.FirstOrDefaultAsync(x => x.UrgencyCode == code);
+                if (entity == null) return Results.NotFound();
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                if (!string.IsNullOrEmpty(dto.UrgencyImage)) entity.UrgencyImage = ConvertBase64ToBytes(dto.UrgencyImage);
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, true);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask2Urgency", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Urgency / تحديث استعجال المهمة"; return op; });
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try {
+                var entity = await db.LtTask2Urgencies.FirstOrDefaultAsync(x => x.UrgencyCode == code);
+                if (entity == null) return Results.NotFound();
+                db.LtTask2Urgencies.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask2Urgency", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Delete Task Urgency / حذف استعجال المهمة"; return op; });
+
         return app;
     }
 
     public static WebApplication MapTask3PriorityEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtTask3Priority>(app, "lookup", "lttask3priorities", "Lookup");
+
         var group = app.MapGroup("/api/lookup/lttask3priorities").RequireAuthorization();
+
+        // POST
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskPriorityDto dto) =>
         {
             try {
@@ -1610,12 +1802,52 @@ public static class EndpointExtensions
                 return Results.Created($"/api/lookup/lttask3priorities/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
         }).WithTags("Lookup");
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, TaskPriorityDto dto) =>
+        {
+            try {
+                var entity = await db.LtTask3Priorities.FirstOrDefaultAsync(x => x.PriorityCode == code);
+                if (entity == null) return Results.NotFound();
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                if (!string.IsNullOrEmpty(dto.ImagePriority)) entity.ImagePriority = ConvertBase64ToBytes(dto.ImagePriority);
+                entity.HourServe = dto.HourServe;
+                entity.IsDefault = dto.IsDefault;
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, true);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask3Priority", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Priority / تحديث أولوية المهمة"; return op; });
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try {
+                var entity = await db.LtTask3Priorities.FirstOrDefaultAsync(x => x.PriorityCode == code);
+                if (entity == null) return Results.NotFound();
+                db.LtTask3Priorities.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask3Priority", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Delete Task Priority / حذف أولوية المهمة"; return op; });
+
         return app;
     }
 
     public static WebApplication MapTask5RateEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtTask5Rate>(app, "lookup", "lttask5rates", "Lookup");
+
         var group = app.MapGroup("/api/lookup/lttask5rates").RequireAuthorization();
+
+        // POST
         group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, TaskRateDto dto) =>
         {
             try {
@@ -1641,6 +1873,39 @@ public static class EndpointExtensions
                 return Results.Created($"/api/lookup/lttask5rates/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
         }).WithTags("Lookup");
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, TaskRateDto dto) =>
+        {
+            try {
+                var entity = await db.LtTask5Rates.FirstOrDefaultAsync(x => x.RatingCode == code);
+                if (entity == null) return Results.NotFound();
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                if (!string.IsNullOrEmpty(dto.RatingImage)) entity.RatingImage = ConvertBase64ToBytes(dto.RatingImage);
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, true);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask5Rate", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update Task Rate / تحديث تقييم المهمة"; return op; });
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try {
+                var entity = await db.LtTask5Rates.FirstOrDefaultAsync(x => x.RatingCode == code);
+                if (entity == null) return Results.NotFound();
+                db.LtTask5Rates.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtTask5Rate", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Delete Task Rate / حذف تقييم المهمة"; return op; });
+
         return app;
     }
 
