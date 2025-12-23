@@ -218,6 +218,9 @@ public static class EndpointExtensions
             case "LtCurrency":
                 app.MapCurrencyEndpoints();
                 return;
+            case "LtAbbreviation":
+                app.MapAbbreviationEndpoints();
+                return;
         }
 
         // 2. Generic GET Endpoint (For everyone else)
@@ -261,9 +264,6 @@ public static class EndpointExtensions
                 case "LtInsuranceCoverage":
                     break;
 
-                // Handled in Program.cs
-                case "LtAbbreviation":
-                    break;
 
                 // FiscalYear, DocType, Currency are handled loop-top, won't reach here.
 
@@ -1106,6 +1106,9 @@ public static class EndpointExtensions
     #region Custom Lookup Mappings
     public static WebApplication MapAbbreviationEndpoints(this WebApplication app)
     {
+        // 1. GET
+        MapGenericGet<LtAbbreviation>(app, "lookup", "ltabbreviations", "Lookup");
+
         var group = app.MapGroup("/api/lookup/ltabbreviations").RequireAuthorization();
 
         // POST Create Abbreviation (Explicit Implementation)
