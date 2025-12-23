@@ -1040,6 +1040,9 @@ public static class EndpointExtensions
             // 2. Generate New Code
             string newCode = GenerateNextCode(refTable);
 
+            // 2.1 Truncate Strings to fit DB
+            TruncateEntityStrings(db, entity);
+
             // 3. Set Code on Entity
             propInfo.SetValue(entity, newCode);
 
@@ -1057,7 +1060,8 @@ public static class EndpointExtensions
             }
             catch (Exception ex)
             {
-                return Results.Problem(ex.Message);
+                var detail = ex.InnerException?.Message ?? ex.Message;
+                return Results.Problem(detail: detail, statusCode: 500);
             }
         })
         .WithTags("Lookup")
@@ -1104,6 +1108,9 @@ public static class EndpointExtensions
                 var id = typeof(T).GetProperty("Id")?.GetValue(existingEntity);
 
                 entry.CurrentValues.SetValues(inputEntity);
+
+                // Truncate strings after setting values
+                TruncateEntityStrings(db, existingEntity);
 
                 // Restore immutable values
                 if (createdBy != null) typeof(T).GetProperty("CreatedBy")?.SetValue(existingEntity, createdBy);
@@ -1793,4 +1800,30 @@ public static class EndpointExtensions
     }
 
     #endregion
+
+    private static void TruncateEntityStrings<T>(DbContext db, T entity) where T : class
+    {
+        var entityType = db.Model.FindEntityType(typeof(T));
+        if (entityType == null) return;
+
+        foreach (var property in entityType.GetProperties())
+        {
+            if (property.ClrType == typeof(string) && !property.IsShadowProperty())
+            {
+                var maxLength = property.GetMaxLength();
+                if (maxLength.HasValue)
+                {
+                    var propInfo = typeof(T).GetProperty(property.Name, BindingFlags.Public | BindingFlags.Instance);
+                    if (propInfo != null && propInfo.CanRead && propInfo.CanWrite)
+                    {
+                        var currentValue = (string?)propInfo.GetValue(entity);
+                        if (currentValue != null && currentValue.Length > maxLength.Value)
+                        {
+                            propInfo.SetValue(entity, currentValue.Substring(0, maxLength.Value));
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

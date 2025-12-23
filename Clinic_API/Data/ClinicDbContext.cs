@@ -2573,8 +2573,8 @@ public partial class ClinicDbContext : DbContext
                 .HasDefaultValueSql("(getutcdate())")
                 .HasColumnType("smalldatetime");
             entity.Property(e => e.HourBase)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.Ipaddress)
                 .HasMaxLength(100)
@@ -2599,107 +2599,107 @@ public partial class ClinicDbContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("Name_En");
             entity.Property(e => e.OverTimeRegular)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.OverTimeVacation)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular0)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular1)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular10)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular11)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular12)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular13)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular14)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular15)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular2)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular3)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular4)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular5)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular6)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular7)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular8)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Regular9)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift0)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift1)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift10)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift11)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift12)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift13)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift14)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift15)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift2)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift3)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift4)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift5)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift6)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift7)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift8)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.Shift9)
-                .HasDefaultValue(0.0)
-                .HasColumnType("float");
+                .HasDefaultValue(0.0m)
+                .HasColumnType("decimal(18, 3)");
             entity.Property(e => e.StartStep).HasDefaultValue(0);
         });
 
