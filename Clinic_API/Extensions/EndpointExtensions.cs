@@ -2308,8 +2308,24 @@ public static class EndpointExtensions
     #region Helpers
 
     /// <summary>
-    /// Map a generic GET endpoint for an entity type
+    /// Maps a generic GET endpoint for an entity type with pagination, filtering, searching, and sorting capabilities.
+    /// Implements output caching with different expiration times based on entity category.
     /// </summary>
+    /// <typeparam name="T">The entity type to create the endpoint for. Must be a class.</typeparam>
+    /// <param name="app">The WebApplication instance to add the endpoint to.</param>
+    /// <param name="routePrefix">The route prefix (e.g., "lookup", "finance"). Do not include /api/.</param>
+    /// <param name="routeName">The route name (e.g., "ltfiscalyears"). Should be lowercase.</param>
+    /// <param name="category">The category for Swagger grouping (e.g., "Lookup", "Finance").</param>
+    /// <remarks>
+    /// This method creates a GET endpoint with the following features:
+    /// - Pagination (default: page=1, pageSize=50)
+    /// - Dynamic filtering by any entity property
+    /// - Full-text search capability
+    /// - Sorting with ascending/descending order
+    /// - Output caching (365 days for lookup tables, 5 minutes for others)
+    /// - Comprehensive Swagger documentation
+    /// - AsNoTracking for optimal read performance
+    /// </remarks>
     public static void MapGenericGet<T>(WebApplication app, string routePrefix, string routeName, string category) where T : class
     {
         var group = app.MapGroup(routePrefix);
@@ -2319,7 +2335,8 @@ public static class EndpointExtensions
             var logger = ctx.RequestServices.GetRequiredService<ILogger<Program>>();
             try
             {
-                var query = db.Set<T>().AsQueryable();
+                // Use AsNoTracking for read-only queries to improve performance
+                var query = db.Set<T>().AsNoTracking().AsQueryable();
 
                 // 1. Filtering (Dynamic from Query)
                 var propertyInfos = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
@@ -2358,6 +2375,14 @@ public static class EndpointExtensions
                 int size = int.TryParse(ctx.Request.Query["pageSize"], out var s) ? s : 50;
 
                 var totalCount = await query.CountAsync();
+
+                // Add default ordering to prevent EF Core warnings about unpredictable results
+                // Order by Id if no explicit sort is provided
+                if (string.IsNullOrEmpty(sort))
+                {
+                    query = query.OrderBy(e => EF.Property<object>(e, "Id"));
+                }
+
                 var items = await query.Skip((pageNumber - 1) * size).Take(size).ToListAsync();
 
                 var result = new
@@ -2373,7 +2398,14 @@ public static class EndpointExtensions
             }
             catch (Exception ex)
             {
-                return Results.Problem(ex.Message);
+                logger.LogError(ex, "Error retrieving {EntityType} data", typeof(T).Name);
+
+                var errorDetail = ex.InnerException?.Message ?? ex.Message;
+                return Results.Problem(
+                    detail: errorDetail,
+                    statusCode: 500,
+                    title: $"Error retrieving {typeof(T).Name} data"
+                );
             }
         });
 
