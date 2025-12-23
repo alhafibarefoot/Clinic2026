@@ -6,6 +6,7 @@ using Clinic2026_API.Models.Entities;
 using Clinic2026_API.Models.System;
 using Microsoft.AspNetCore.OutputCaching;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Clinic2026_API.Extensions;
 
@@ -2102,8 +2103,45 @@ public static class EndpointExtensions
     private static void SetAuditFields(object entity, HttpContext? ctx, bool isUpdate = false)
     {
         string currentUser = ctx?.User.Identity?.Name ?? Environment.UserName;
-        // Simple way to get IP, or just use context connection
-        string currentIp = ctx?.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+
+        // Capture all IPs: X-Forwarded-For (if behind proxy) + Direct Connection IP
+        var ipList = new List<string>();
+
+        if (ctx?.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor) == true)
+        {
+            if (!string.IsNullOrWhiteSpace(forwardedFor))
+            {
+                ipList.Add(forwardedFor.ToString());
+            }
+        }
+
+        var remoteIp = ctx?.Connection.RemoteIpAddress?.ToString();
+        if (!string.IsNullOrWhiteSpace(remoteIp) && remoteIp != "::1")
+        {
+             ipList.Add(remoteIp);
+        }
+        else if (remoteIp == "::1")
+        {
+            ipList.Add("127.0.0.1"); // Normalize localhost
+        }
+
+        // Capture Server Local IPs (LAN IPs)
+        try
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ipList.Add(ip.ToString());
+                }
+            }
+        }
+        catch { /* Ignore DNS errors */ }
+
+        // Clean up and join
+        string currentIp = ipList.Count > 0 ? string.Join(",", ipList.Distinct()) : "127.0.0.1";
+
 
         var type = entity.GetType();
 
