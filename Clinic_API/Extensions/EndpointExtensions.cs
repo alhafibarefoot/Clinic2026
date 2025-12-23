@@ -116,6 +116,14 @@ public static class EndpointExtensions
         public int LfRoleId { get; set; } // Changed from RoleId, assuming int is correct for FK
         public bool? IsActive { get; set; }
     }
+
+    public class FiscalYearDto
+    {
+        public string FiscalYearName { get; set; } = null!;
+        public bool? IsClosed { get; set; }
+        public int? YearCode { get; set; }
+        public bool? IsActive { get; set; }
+    }
     #endregion
 
 
@@ -300,6 +308,9 @@ public static class EndpointExtensions
             case "LtAbbreviation":
                     // Handled manually in Program.cs (or could be moved here too)
                     // Currently Program.cs calls MapAbbreviationEndpoints(), so we just skip here.
+                    break;
+                case "LtFiscalYear":
+                    app.MapFiscalYearEndpoints();
                     break;
                 default:
                     MapGenericLookupCrud<T>(app, routePrefix, routeName);
@@ -1728,6 +1739,102 @@ public static class EndpointExtensions
                 return Results.Created($"/api/lookup/lttask5rates/{newCode}", entity);
             } catch (Exception ex) { return Results.Problem(ex.Message); }
         }).WithTags("Lookup");
+        return app;
+    }
+
+    public static WebApplication MapFiscalYearEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/ltfiscalyears").RequireAuthorization();
+
+        // POST
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, FiscalYearDto dto) =>
+        {
+            try
+            {
+                var refTable = await GetLookupReferenceAsync(db, "FiscalYear");
+                if (refTable == null) return Results.BadRequest("Reference 'FiscalYear' not found");
+
+                string newCode = GenerateNextCode(refTable); // e.g. "FY-2025"
+
+                // Extract year from the rightmost digits
+                int year = DateTime.UtcNow.Year; // Fallback
+                var match = System.Text.RegularExpressions.Regex.Match(newCode, @"\d{4}$");
+                if (match.Success)
+                {
+                    year = int.Parse(match.Value);
+                }
+
+                var entity = new LtFiscalYear
+                {
+                    FiscalYearCode = newCode,
+                    FiscalYearName = dto.FiscalYearName,
+                    StartDate = new DateTime(year, 1, 1),
+                    EndDate = new DateTime(year, 12, 31),
+                    IsClosed = dto.IsClosed ?? false,
+                    YearCode = dto.YearCode, // Or could be set to 'year' if that's the intention
+                    IsActive = dto.IsActive ?? true
+                };
+
+                SetAuditFields(entity, ctx);
+
+                db.LtFiscalYears.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtFiscalYear", default);
+
+                return Results.Created($"/api/lookup/ltfiscalyears/{newCode}", entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Create Fiscal Year / إنشاء سنة مالية";
+            operation.Description = "Auto-generates dates based on the year in the generated code.";
+            return operation;
+        });
+
+        // PUT (Update logic - keeping it generic-like for now as request didn't specify custom PUT)
+        // Re-implementing Generic-like PUT because we bypassed MapGenericLookupCrud
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, FiscalYearDto dto) =>
+        {
+             try
+            {
+                var entity = await db.LtFiscalYears.FirstOrDefaultAsync(x => x.FiscalYearCode == code);
+                if (entity == null) return Results.NotFound($"Fiscal Year with Code '{code}' not found.");
+
+                entity.FiscalYearName = dto.FiscalYearName;
+                if(dto.IsClosed.HasValue) entity.IsClosed = dto.IsClosed;
+                if(dto.YearCode.HasValue) entity.YearCode = dto.YearCode;
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, isUpdate: true);
+
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtFiscalYear", default);
+                return Results.Ok(entity);
+            }
+            catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try
+            {
+                var entity = await db.LtFiscalYears.FirstOrDefaultAsync(x => x.FiscalYearCode == code);
+                if (entity == null) return Results.NotFound();
+
+                db.LtFiscalYears.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtFiscalYear", default);
+                return Results.Ok(entity);
+            }
+            catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+
         return app;
     }
     #endregion
