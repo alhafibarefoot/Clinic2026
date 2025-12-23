@@ -290,6 +290,13 @@ public static class EndpointExtensions
             case "LtProductServiceCategory":
                 app.MapProductServiceCategoryEndpoints();
                 break;
+            case "LtDentalTeethChart":
+            case "LtGradeAllowance":
+            case "LtGradeDeduction":
+            case "LtIcon":
+            case "LtInsuranceCoverage":
+                // Skip CRUD mapping for these entities (GET only)
+                break;
             case "LtAbbreviation":
                     // Handled manually in Program.cs (or could be moved here too)
                     // Currently Program.cs calls MapAbbreviationEndpoints(), so we just skip here.
