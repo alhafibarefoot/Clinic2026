@@ -329,8 +329,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Role / Ø¥Ù†Ø´Ø§Ø¡ Ø¯ÙˆØ± Ø¬Ø¯ÙŠØ¯";
-            operation.Description = "Create a new role in the system. / Ø¥Ù†Ø´Ø§Ø¡ Ø¯ÙˆØ± Ø¬Ø¯ÙŠØ¯ ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù….";
+            operation.Summary = "Create Role / إنشاء دور جديد";
+            operation.Description = "Create a new role in the system. / إنشاء دور جديد في النظام.";
             return operation;
         });
 
@@ -382,8 +382,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Update Role / ØªØ­Ø¯ÙŠØ« Ø¯ÙˆØ±";
-            operation.Description = "Update an existing role by ID. / ØªØ­Ø¯ÙŠØ« Ø¨ÙŠØ§Ù†Ø§Øª Ø¯ÙˆØ± Ù…ÙˆØ¬ÙˆØ¯ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
+            operation.Summary = "Update Role / تحديث دور";
+            operation.Description = "Update an existing role by ID. / تحديث بيانات دور موجود باستخدام المعرف.";
             return operation;
         });
 
@@ -1153,7 +1153,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Abbreviation / Ø¥Ù†Ø´Ø§Ø¡ Ø§Ø®ØªØµØ§Ø±";
+            operation.Summary = "Create Abbreviation / إنشاء اختصار";
             operation.Description = "Create a new abbreviation (Explicit).";
             return operation;
         });
@@ -1696,7 +1696,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Fiscal Year / Ø¥Ù†Ø´Ø§Ø¡ Ø³Ù†Ø© Ù…Ø§Ù„ÙŠØ©";
+            operation.Summary = "Create Fiscal Year / إنشاء سنة مالية";
             operation.Description = "Auto-generates dates based on the year in the generated code.";
             return operation;
         });
@@ -1791,7 +1791,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Accounting Document Type / Ø¥Ù†Ø´Ø§Ø¡ Ù†ÙˆØ¹ Ù…Ø³ØªÙ†Ø¯ Ù…Ø­Ø§Ø³Ø¨ÙŠ";
+            operation.Summary = "Create Accounting Document Type / إنشاء نوع مستند محاسبي";
             operation.Description = "Creates a new accounting document type with validation on DocumentBreif length.";
             return operation;
         });
@@ -1893,7 +1893,7 @@ public static class EndpointExtensions
         .WithTags("Lookup")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create Currency / Ø¥Ù†Ø´Ø§Ø¡ Ø¹Ù…Ù„Ø©";
+            operation.Summary = "Create Currency / إنشاء عملة";
             operation.Description = "Creates a new currency with validation on CurrencyCode1 length.";
             return operation;
         });
@@ -2036,8 +2036,8 @@ public static class EndpointExtensions
         .WithName($"Get_{routeName}")
         .WithOpenApi(operation =>
         {
-            operation.Summary = $"Get all {routeName}";
-            operation.Description = $"Retrieve all {routeName} with optional filtering, searching, and sorting.";
+            operation.Summary = $"Get all {routeName} / الحصول على جميع سجلات {routeName}";
+            operation.Description = $"Retrieve all {routeName} with optional filtering, searching, and sorting. / استرجاع جميع سجلات {routeName} مع إمكانية التصفية والبحث والفرز.";
 
             // Add params logic
             var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
@@ -2207,3 +2207,4 @@ public static class EndpointExtensions
         }
     }
 }
+
