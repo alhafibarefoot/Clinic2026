@@ -124,6 +124,14 @@ public static class EndpointExtensions
         public int? YearCode { get; set; }
         public bool? IsActive { get; set; }
     }
+
+    public class AccountingDocumentTypeDto
+    {
+        public string DocumentBreif { get; set; } = null!;
+        public string NameEn { get; set; } = null!;
+        public string NameAr { get; set; } = null!;
+        public bool? IsActive { get; set; }
+    }
     #endregion
 
 
@@ -311,6 +319,9 @@ public static class EndpointExtensions
                     break;
                 case "LtFiscalYear":
                     app.MapFiscalYearEndpoints();
+                    break;
+                case "LtAccountingDocumentType":
+                    app.MapAccountingDocumentTypeEndpoints();
                     break;
                 default:
                     MapGenericLookupCrud<T>(app, routePrefix, routeName);
@@ -1830,6 +1841,104 @@ public static class EndpointExtensions
                 db.LtFiscalYears.Remove(entity);
                 await db.SaveChangesAsync();
                 await cache.EvictByTagAsync("LtFiscalYear", default);
+                return Results.Ok(entity);
+            }
+            catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+
+        return app;
+    }
+
+    public static WebApplication MapAccountingDocumentTypeEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/ltaccountingdocumenttypes").RequireAuthorization();
+
+        // POST
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, AccountingDocumentTypeDto dto) =>
+        {
+            try
+            {
+                // Validation
+                if (dto.DocumentBreif.Length > 2)
+                {
+                    return Results.BadRequest("DocumentBreif cannot be more than 2 characters.");
+                }
+
+                var refTable = await GetLookupReferenceAsync(db, "AccountingDocumentType");
+                if (refTable == null) return Results.BadRequest("Reference 'AccountingDocumentType' not found");
+
+                string newCode = GenerateNextCode(refTable);
+
+                var entity = new LtAccountingDocumentType
+                {
+                    AccountingDocumentTypeCode = newCode,
+                    DocumentBreif = dto.DocumentBreif,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    IsActive = dto.IsActive ?? true
+                };
+
+                SetAuditFields(entity, ctx);
+
+                db.LtAccountingDocumentTypes.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtAccountingDocumentType", default);
+
+                return Results.Created($"/api/lookup/ltaccountingdocumenttypes/{newCode}", entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Create Accounting Document Type / إنشاء نوع مستند محاسبي";
+            operation.Description = "Creates a new accounting document type with validation on DocumentBreif length.";
+            return operation;
+        });
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, AccountingDocumentTypeDto dto) =>
+        {
+             try
+            {
+                // Validation for Update too
+                if (dto.DocumentBreif.Length > 2)
+                {
+                    return Results.BadRequest("DocumentBreif cannot be more than 2 characters.");
+                }
+
+                var entity = await db.LtAccountingDocumentTypes.FirstOrDefaultAsync(x => x.AccountingDocumentTypeCode == code);
+                if (entity == null) return Results.NotFound($"Accounting Document Type with Code '{code}' not found.");
+
+                entity.DocumentBreif = dto.DocumentBreif;
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, isUpdate: true);
+
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtAccountingDocumentType", default);
+                return Results.Ok(entity);
+            }
+            catch (Exception ex) { return Results.Problem(ex.Message); }
+        })
+        .WithTags("Lookup");
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try
+            {
+                var entity = await db.LtAccountingDocumentTypes.FirstOrDefaultAsync(x => x.AccountingDocumentTypeCode == code);
+                if (entity == null) return Results.NotFound();
+
+                db.LtAccountingDocumentTypes.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtAccountingDocumentType", default);
                 return Results.Ok(entity);
             }
             catch (Exception ex) { return Results.Problem(ex.Message); }
