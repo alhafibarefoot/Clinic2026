@@ -132,6 +132,15 @@ public static class EndpointExtensions
         public string NameAr { get; set; } = null!;
         public bool? IsActive { get; set; }
     }
+
+    public class CurrencyDto
+    {
+        public string CurrencyName { get; set; } = null!;
+        public string CurrencyCode1 { get; set; } = null!;
+        public decimal? ExchangeRate { get; set; }
+        public bool? IsDefault { get; set; }
+        public bool? IsActive { get; set; }
+    }
     #endregion
 
 
@@ -322,6 +331,9 @@ public static class EndpointExtensions
                     break;
                 case "LtAccountingDocumentType":
                     app.MapAccountingDocumentTypeEndpoints();
+                    break;
+                case "LtCurrency":
+                    app.MapCurrencyEndpoints();
                     break;
                 default:
                     MapGenericLookupCrud<T>(app, routePrefix, routeName);
@@ -1939,6 +1951,106 @@ public static class EndpointExtensions
                 db.LtAccountingDocumentTypes.Remove(entity);
                 await db.SaveChangesAsync();
                 await cache.EvictByTagAsync("LtAccountingDocumentType", default);
+                return Results.Ok(entity);
+            }
+            catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup");
+
+        return app;
+    }
+
+    public static WebApplication MapCurrencyEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/lookup/ltcurrencies").RequireAuthorization();
+
+        // POST
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, CurrencyDto dto) =>
+        {
+            try
+            {
+                // Validation
+                if (dto.CurrencyCode1.Length > 3)
+                {
+                    return Results.BadRequest("CurrencyCode1 cannot be more than 3 characters.");
+                }
+
+                var refTable = await GetLookupReferenceAsync(db, "Currency");
+                if (refTable == null) return Results.BadRequest("Reference 'Currency' not found");
+
+                string newCode = GenerateNextCode(refTable);
+
+                var entity = new LtCurrency
+                {
+                    CurrencyCode = newCode,
+                    CurrencyName = dto.CurrencyName,
+                    CurrencyCode1 = dto.CurrencyCode1,
+                    ExchangeRate = dto.ExchangeRate,
+                    IsDefault = dto.IsDefault,
+                    IsActive = dto.IsActive ?? true
+                };
+
+                SetAuditFields(entity, ctx);
+
+                db.LtCurrencies.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtCurrency", default);
+
+                return Results.Created($"/api/lookup/ltcurrencies/{newCode}", entity);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        })
+        .WithTags("Lookup")
+        .WithOpenApi(operation =>
+        {
+            operation.Summary = "Create Currency / إنشاء عملة";
+            operation.Description = "Creates a new currency with validation on CurrencyCode1 length.";
+            return operation;
+        });
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, CurrencyDto dto) =>
+        {
+             try
+            {
+                // Validation for Update too
+                if (dto.CurrencyCode1.Length > 3)
+                {
+                    return Results.BadRequest("CurrencyCode1 cannot be more than 3 characters.");
+                }
+
+                var entity = await db.LtCurrencies.FirstOrDefaultAsync(x => x.CurrencyCode == code);
+                if (entity == null) return Results.NotFound($"Currency with Code '{code}' not found.");
+
+                entity.CurrencyName = dto.CurrencyName;
+                entity.CurrencyCode1 = dto.CurrencyCode1;
+                entity.ExchangeRate = dto.ExchangeRate;
+                entity.IsDefault = dto.IsDefault;
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, isUpdate: true);
+
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtCurrency", default);
+                return Results.Ok(entity);
+            }
+            catch (Exception ex) { return Results.Problem(ex.Message); }
+        })
+        .WithTags("Lookup");
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try
+            {
+                var entity = await db.LtCurrencies.FirstOrDefaultAsync(x => x.CurrencyCode == code);
+                if (entity == null) return Results.NotFound();
+
+                db.LtCurrencies.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtCurrency", default);
                 return Results.Ok(entity);
             }
             catch (Exception ex) { return Results.Problem(ex.Message); }
