@@ -54,6 +54,7 @@ public static class EndpointExtensions
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
         public IFormFile? MedicalTypeLogo { get; set; }
+        public string? MedicalTypeLogoBase64 { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -64,6 +65,7 @@ public static class EndpointExtensions
         public bool IsCreditCard { get; set; } // Changed from bool?
         public bool IsLoyalityCard { get; set; } // Changed from bool?
         public IFormFile? PaymentTypeLogo { get; set; }
+        public string? PaymentTypeLogoBase64 { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -72,6 +74,7 @@ public static class EndpointExtensions
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
         public IFormFile? ChannalPhoto { get; set; }
+        public string? ChannalPhotoBase64 { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -80,6 +83,7 @@ public static class EndpointExtensions
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
         public IFormFile? ImpactImage { get; set; }
+        public string? ImpactImageBase64 { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -88,6 +92,7 @@ public static class EndpointExtensions
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
         public IFormFile? UrgencyImage { get; set; }
+        public string? UrgencyImageBase64 { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -96,6 +101,7 @@ public static class EndpointExtensions
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
         public IFormFile? ImagePriority { get; set; }
+        public string? ImagePriorityBase64 { get; set; }
         public int? HourServe { get; set; }
         public bool IsDefault { get; set; } // Changed from bool?
         public bool? IsActive { get; set; }
@@ -106,6 +112,7 @@ public static class EndpointExtensions
         public string NameEn { get; set; } = null!;
         public string NameAr { get; set; } = null!; // Changed from string?
         public IFormFile? RatingImage { get; set; }
+        public string? RatingImageBase64 { get; set; }
         public bool? IsActive { get; set; }
     }
 
@@ -1343,7 +1350,7 @@ public static class EndpointExtensions
                 string newCode = GenerateNextCode(refTable);
 
                 // 3. Handle Logo
-                byte[]? logoBytes = await ConvertFileToBytesAsync(dto.MedicalTypeLogo);
+                byte[]? logoBytes = await ConvertImageToBytesAsync(dto.MedicalTypeLogo, dto.MedicalTypeLogoBase64);
 
                 // 4. Create Entity
                 var entity = new LtMedicalSpecialty
@@ -1402,7 +1409,7 @@ public static class EndpointExtensions
                 // Handle Logo Update
                 if (dto.MedicalTypeLogo != null) // Only update if provided
                 {
-                    entity.MedicalTypeLogo = await ConvertFileToBytesAsync(dto.MedicalTypeLogo);
+                    entity.MedicalTypeLogo = await ConvertImageToBytesAsync(dto.MedicalTypeLogo, dto.MedicalTypeLogoBase64);
                 }
 
                 SetAuditFields(entity, httpContext, isUpdate: true);
@@ -1484,7 +1491,7 @@ public static class EndpointExtensions
                     NameAr = dto.NameAr,
                     IsCreditCard = dto.IsCreditCard,
                     IsLoyalityCard = dto.IsLoyalityCard,
-                    PaymentTypeLogo = await ConvertFileToBytesAsync(dto.PaymentTypeLogo),
+                    PaymentTypeLogo = await ConvertImageToBytesAsync(dto.PaymentTypeLogo, dto.PaymentTypeLogoBase64),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1510,7 +1517,8 @@ public static class EndpointExtensions
                 entity.NameAr = dto.NameAr;
                 entity.IsCreditCard = dto.IsCreditCard;
                 entity.IsLoyalityCard = dto.IsLoyalityCard;
-                if (dto.PaymentTypeLogo != null) entity.PaymentTypeLogo = await ConvertFileToBytesAsync(dto.PaymentTypeLogo);
+                if (dto.PaymentTypeLogo != null || !string.IsNullOrEmpty(dto.PaymentTypeLogoBase64))
+                    entity.PaymentTypeLogo = await ConvertImageToBytesAsync(dto.PaymentTypeLogo, dto.PaymentTypeLogoBase64);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1559,7 +1567,7 @@ public static class EndpointExtensions
                     RequestTypeChannal = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    ChannalPhoto = await ConvertFileToBytesAsync(dto.ChannalPhoto),
+                    ChannalPhoto = await ConvertImageToBytesAsync(dto.ChannalPhoto, dto.ChannalPhotoBase64),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1583,7 +1591,8 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (dto.ChannalPhoto != null) entity.ChannalPhoto = await ConvertFileToBytesAsync(dto.ChannalPhoto);
+                if (dto.ChannalPhoto != null || !string.IsNullOrEmpty(dto.ChannalPhotoBase64))
+                    entity.ChannalPhoto = await ConvertImageToBytesAsync(dto.ChannalPhoto, dto.ChannalPhotoBase64);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1632,7 +1641,7 @@ public static class EndpointExtensions
                     ImpactCode = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    ImpactImage = await ConvertFileToBytesAsync(dto.ImpactImage),
+                    ImpactImage = await ConvertImageToBytesAsync(dto.ImpactImage, dto.ImpactImageBase64),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1656,7 +1665,8 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (dto.ImpactImage != null) entity.ImpactImage = await ConvertFileToBytesAsync(dto.ImpactImage);
+                if (dto.ImpactImage != null || !string.IsNullOrEmpty(dto.ImpactImageBase64))
+                    entity.ImpactImage = await ConvertImageToBytesAsync(dto.ImpactImage, dto.ImpactImageBase64);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1705,7 +1715,7 @@ public static class EndpointExtensions
                     UrgencyCode = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    UrgencyImage = await ConvertFileToBytesAsync(dto.UrgencyImage),
+                    UrgencyImage = await ConvertImageToBytesAsync(dto.UrgencyImage, dto.UrgencyImageBase64),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1729,7 +1739,8 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (dto.UrgencyImage != null) entity.UrgencyImage = await ConvertFileToBytesAsync(dto.UrgencyImage);
+                if (dto.UrgencyImage != null || !string.IsNullOrEmpty(dto.UrgencyImageBase64))
+                    entity.UrgencyImage = await ConvertImageToBytesAsync(dto.UrgencyImage, dto.UrgencyImageBase64);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -1778,7 +1789,7 @@ public static class EndpointExtensions
                     PriorityCode = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    ImagePriority = await ConvertFileToBytesAsync(dto.ImagePriority),
+                    ImagePriority = await ConvertImageToBytesAsync(dto.ImagePriority, dto.ImagePriorityBase64),
                     HourServe = dto.HourServe,
                     IsDefault = dto.IsDefault,
                     IsActive = dto.IsActive ?? true
@@ -1804,7 +1815,8 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (dto.ImagePriority != null) entity.ImagePriority = await ConvertFileToBytesAsync(dto.ImagePriority);
+                if (dto.ImagePriority != null || !string.IsNullOrEmpty(dto.ImagePriorityBase64))
+                    entity.ImagePriority = await ConvertImageToBytesAsync(dto.ImagePriority, dto.ImagePriorityBase64);
                 entity.HourServe = dto.HourServe;
                 entity.IsDefault = dto.IsDefault;
                 entity.IsActive = dto.IsActive;
@@ -1855,7 +1867,7 @@ public static class EndpointExtensions
                     RatingCode = newCode,
                     NameEn = dto.NameEn,
                     NameAr = dto.NameAr,
-                    RatingImage = await ConvertFileToBytesAsync(dto.RatingImage),
+                    RatingImage = await ConvertImageToBytesAsync(dto.RatingImage, dto.RatingImageBase64),
                     IsActive = dto.IsActive ?? true
                 };
 
@@ -1879,7 +1891,8 @@ public static class EndpointExtensions
 
                 entity.NameEn = dto.NameEn;
                 entity.NameAr = dto.NameAr;
-                if (dto.RatingImage != null) entity.RatingImage = await ConvertFileToBytesAsync(dto.RatingImage);
+                if (dto.RatingImage != null || !string.IsNullOrEmpty(dto.RatingImageBase64))
+                    entity.RatingImage = await ConvertImageToBytesAsync(dto.RatingImage, dto.RatingImageBase64);
                 entity.IsActive = dto.IsActive;
 
                 SetAuditFields(entity, ctx, true);
@@ -2442,13 +2455,32 @@ public static class EndpointExtensions
         }
     }
 
-    // Helper for file to bytes conversion
-    private static async Task<byte[]?> ConvertFileToBytesAsync(IFormFile? file)
+    // Helper for file to bytes conversion (supports both file upload and Base64 string)
+    private static async Task<byte[]?> ConvertImageToBytesAsync(IFormFile? file, string? base64String)
     {
-        if (file == null || file.Length == 0) return null;
-        using var ms = new MemoryStream();
-        await file.CopyToAsync(ms);
-        return ms.ToArray();
+        // Priority 1: File upload
+        if (file != null && file.Length > 0)
+        {
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            return ms.ToArray();
+        }
+
+        // Priority 2: Base64 string
+        if (!string.IsNullOrEmpty(base64String) && base64String != "string")
+        {
+            try
+            {
+                if (base64String.Contains(",")) base64String = base64String.Split(',')[1];
+                return Convert.FromBase64String(base64String);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     #endregion
