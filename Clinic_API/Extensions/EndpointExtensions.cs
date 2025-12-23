@@ -151,6 +151,13 @@ public static class EndpointExtensions
         public bool? IsDefault { get; set; }
         public bool? IsActive { get; set; }
     }
+
+    public class FileScreenActionDto
+    {
+        public string NameEn { get; set; } = null!;
+        public string NameAr { get; set; } = null!;
+        public bool? IsActive { get; set; }
+    }
     #endregion
 
 
@@ -250,6 +257,9 @@ public static class EndpointExtensions
                 return;
             case "LtProductServiceCategory":
                 app.MapProductServiceCategoryEndpoints();
+                return;
+            case "LtFileScreenAction":
+                app.MapFileScreenActionEndpoints();
                 return;
         }
 
@@ -430,6 +440,75 @@ public static class EndpointExtensions
             operation.Description = "Delete a role by ID. / Ø­Ø°Ù Ø¯ÙˆØ± Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
             return operation;
         });
+
+        return app;
+    }
+
+    public static WebApplication MapFileScreenActionEndpoints(this WebApplication app)
+    {
+        // 1. GET
+        MapGenericGet<LtFileScreenAction>(app, "/api/lookup", "ltfilescreenactions", "Lookup");
+
+        var group = app.MapGroup("/api/lookup/ltfilescreenactions").RequireAuthorization();
+
+        // POST
+        group.MapPost("/", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, FileScreenActionDto dto) =>
+        {
+            try {
+                var refTable = await GetLookupReferenceAsync(db, "FileScreenAction");
+                if (refTable == null) return Results.BadRequest("Reference 'FileScreenAction' not found");
+
+                string newCode = GenerateNextCode(refTable);
+
+                var entity = new LtFileScreenAction
+                {
+                    FileScreenActionCode = newCode,
+                    NameEn = dto.NameEn,
+                    NameAr = dto.NameAr,
+                    IsActive = dto.IsActive ?? true
+                };
+
+                SetAuditFields(entity, ctx);
+
+                db.LtFileScreenActions.Add(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtFileScreenAction", default);
+                return Results.Created($"/api/lookup/ltfilescreenactions/{newCode}", entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        })
+        .WithTags("Lookup");
+
+        // PUT
+        group.MapPut("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, HttpContext ctx, string code, FileScreenActionDto dto) =>
+        {
+            try {
+                var entity = await db.LtFileScreenActions.FirstOrDefaultAsync(x => x.FileScreenActionCode == code);
+                if (entity == null) return Results.NotFound();
+
+                entity.NameEn = dto.NameEn;
+                entity.NameAr = dto.NameAr;
+                entity.IsActive = dto.IsActive;
+
+                SetAuditFields(entity, ctx, true);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtFileScreenAction", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        })
+        .WithTags("Lookup").WithOpenApi(op => { op.Summary = "Update File Screen Action / تحديث إجراء شاشة الملف"; return op; });
+
+        // DELETE
+        group.MapDelete("/{code}", async (ClinicDbContext db, IOutputCacheStore cache, string code) =>
+        {
+            try {
+                var entity = await db.LtFileScreenActions.FirstOrDefaultAsync(x => x.FileScreenActionCode == code);
+                if (entity == null) return Results.NotFound();
+                db.LtFileScreenActions.Remove(entity);
+                await db.SaveChangesAsync();
+                await cache.EvictByTagAsync("LtFileScreenAction", default);
+                return Results.Ok(entity);
+            } catch (Exception ex) { return Results.Problem(ex.Message); }
+        }).WithTags("Lookup").WithOpenApi(op => { op.Summary = "Delete File Screen Action / حذف إجراء شاشة الملف"; return op; });
 
         return app;
     }
