@@ -436,8 +436,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Delete Role / Ø­Ø°Ù Ø¯ÙˆØ±";
-            operation.Description = "Delete a role by ID. / Ø­Ø°Ù Ø¯ÙˆØ± Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
+            operation.Summary = "Delete Role / حذف دور";
+            operation.Description = "Delete a role by ID. / حذف دور باستخدام المعرف.";
             return operation;
         });
 
@@ -594,8 +594,8 @@ public static class EndpointExtensions
         .WithName("Get_TblUsersAdmin")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Get all users with decrypted passwords (Admin) / Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ù…Ø¹ ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø±ÙˆØ± (Ø£Ø¯Ù…Ù†)";
-            operation.Description = "Retrieve all users with decrypted passwords. / Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ù…Ø¹ Ø¹Ø±Ø¶ ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø±ÙˆØ± Ù…ÙÙƒÙˆÙƒØ© Ø§Ù„ØªØ´ÙÙŠØ±.";
+            operation.Summary = "Get all users with decrypted passwords (Admin) / الحصول على جميع المستخدمين مع كلمات المرور (أدمن)";
+            operation.Description = "Retrieve all users with decrypted passwords. / استرجاع جميع المستخدمين مع عرض كلمات المرور مفكوكة التشفير.";
             return operation;
         });
 
@@ -653,8 +653,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Create User / Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø³ØªØ®Ø¯Ù… Ø¬Ø¯ÙŠØ¯";
-            operation.Description = "Create a new user in the system. / Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø³ØªØ®Ø¯Ù… Ø¬Ø¯ÙŠØ¯ ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù….";
+            operation.Summary = "Create User / إنشاء مستخدم جديد";
+            operation.Description = "Create a new user in the system. / إنشاء مستخدم جديد في النظام.";
             return operation;
         });
 
@@ -744,8 +744,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Update User / ØªØ­Ø¯ÙŠØ« Ù…Ø³ØªØ®Ø¯Ù…";
-            operation.Description = "Update an existing user by ID. / ØªØ­Ø¯ÙŠØ« Ø¨ÙŠØ§Ù†Ø§Øª Ù…Ø³ØªØ®Ø¯Ù… Ù…ÙˆØ¬ÙˆØ¯ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
+            operation.Summary = "Update User / تحديث مستخدم";
+            operation.Description = "Update an existing user by ID. / تحديث بيانات مستخدم موجود باستخدام المعرف.";
             return operation;
         });
 
@@ -780,8 +780,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Delete User / Ø­Ø°Ù Ù…Ø³ØªØ®Ø¯Ù…";
-            operation.Description = "Delete a user by ID. / Ø­Ø°Ù Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø±Ù.";
+            operation.Summary = "Delete User / حذف مستخدم";
+            operation.Description = "Delete a user by ID. / حذف مستخدم باستخدام المعرف.";
             return operation;
         });
 
@@ -846,8 +846,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Assign Role to User / ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù…";
-            operation.Description = "Assign a role to a specific user. / ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ù…Ø­Ø¯Ø¯ Ù„Ù…Ø³ØªØ®Ø¯Ù….";
+            operation.Summary = "Assign Role to User / تعيين دور للمستخدم";
+            operation.Description = "Assign a role to a specific user. / تعيين دور محدد لمستخدم.";
             return operation;
         });
 
@@ -872,8 +872,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Get User Role by ID / Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… (Ø¨Ø§Ù„Ù…Ø¹Ø±Ù)";
-            operation.Description = "Get details of a user role assignment. / Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ ØªÙØ§ØµÙŠÙ„ ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….";
+            operation.Summary = "Get User Role by ID / \u0627\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u0649 \u062f\u0648\u0631 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 (\u0628\u0627\u0644\u0645\u0639\u0631\u0641)";
+            operation.Description = "Get details of a user role assignment. / \u0627\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u0649 \u062a\u0641\u0627\u0635\u064a\u0644 \u062a\u0639\u064a\u064a\u0646 \u062f\u0648\u0631 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645.";
             return operation;
         });
 
@@ -925,8 +925,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Update User Role / ØªØ­Ø¯ÙŠØ« Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…";
-            operation.Description = "Update a user role assignment. / ØªØ­Ø¯ÙŠØ« ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….";
+            operation.Summary = "Update User Role / تحديث دور المستخدم";
+            operation.Description = "Update a user role assignment. / تحديث تعيين دور المستخدم.";
             return operation;
         });
 
@@ -960,8 +960,8 @@ public static class EndpointExtensions
         .WithTags("System")
         .WithOpenApi(operation =>
         {
-            operation.Summary = "Delete User Role / Ø­Ø°Ù Ø¯ÙˆØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…";
-            operation.Description = "Remove a role assignment from a user. / Ø¥Ø²Ø§Ù„Ø© ØªØ¹ÙŠÙŠÙ† Ø¯ÙˆØ± Ù…Ù† Ù…Ø³ØªØ®Ø¯Ù….";
+            operation.Summary = "Delete User Role / \u062d\u0630\u0641 \u062f\u0648\u0631 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645";
+            operation.Description = "Remove a role assignment from a user. / \u0625\u0632\u0627\u0644\u0629 \u062a\u0639\u064a\u064a\u0646 \u062f\u0648\u0631 \u0645\u0646 \u0645\u0633\u062a\u062e\u062f\u0645.";
             return operation;
         });
 
