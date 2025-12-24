@@ -1,271 +1,256 @@
-# Clinic2026 API - Wiki Home
+# 📚 Clinic2026 API - Wiki Documentation
 
-Welcome to the **Clinic2026 API** documentation wiki!
-
-## 📚 Documentation Index
-
-### Getting Started
-1. **[Quick Start Guide](Quick_Start_Guide.md)** - Get up and running in 5 minutes
-2. **[Complete Project Documentation](Complete_Project_Documentation.md)** - Comprehensive guide from A to Z
-3. **[Technical Reference](Technical_Reference.md)** - Deep dive into technical implementation
-
-### Arabic Documentation
-4. **[دليل المشروع الشامل](Comprehensive_Project_Guide_Ar.md)** - Arabic comprehensive guide
-5. **[توثيق المشروع](Project_Documentation_Ar.md)** - Arabic project documentation
-
----
-
-## 🎯 Quick Links
-
-### For Developers
-- **First time?** Start with [Quick Start Guide](Quick_Start_Guide.md)
-- **Need details?** Check [Complete Project Documentation](Complete_Project_Documentation.md)
-- **Technical deep dive?** See [Technical Reference](Technical_Reference.md)
-
-### For Arabic Speakers
-- **البداية السريعة:** [دليل المشروع الشامل](Comprehensive_Project_Guide_Ar.md)
-- **التوثيق الكامل:** [توثيق المشروع](Project_Documentation_Ar.md)
-
----
-
-## 🚀 At a Glance
-
-### What is Clinic2026 API?
-A production-ready RESTful API for clinic management systems with:
-- **100+ endpoints** for comprehensive clinic operations
-- **JWT authentication** for secure access
-- **Smart caching** for optimal performance
-- **Pagination, filtering, searching, sorting** on all GET endpoints
-- **Bilingual support** (English/Arabic)
-- **Complete Swagger documentation**
-
-### Key Features
-✅ Enterprise-grade architecture
-✅ Automatic code generation
-✅ Tag-based cache invalidation
-✅ 20-30% query performance boost
-✅ Zero EF Core warnings
-✅ Comprehensive error handling
-✅ Production-ready security
-
-### Technology Stack
-- .NET 9.0
-- ASP.NET Core Minimal API
-- Entity Framework Core
-- SQL Server
-- JWT Authentication
-- Output Caching
-- Swagger/OpenAPI
+Welcome to the comprehensive documentation for the **Clinic2026 API** project. This wiki provides complete guides for developers, students, and administrators.
 
 ---
 
 ## 📖 Documentation Structure
 
-### 1. Quick Start Guide
-**Perfect for:** First-time users, quick testing
-**Time to read:** 5 minutes
-**Contents:**
-- 5-minute setup
-- Common API operations
-- Available endpoints
-- Tips & tricks
-- Troubleshooting
+### For Arabic Speakers (للناطقين بالعربية)
 
-### 2. Complete Project Documentation
-**Perfect for:** Understanding the full project
-**Time to read:** 30 minutes
-**Contents:**
-- Project overview
-- Architecture details
-- Technology stack
+#### 🎓 [Complete Tutorial (الدليل التعليمي الشامل)](./Clinic_API_Complete_Tutorial_AR.md)
+**Best for:** Students and beginners learning Minimal API from scratch
+
+**Content:**
+- 15 comprehensive chapters
+- Step-by-step instructions from environment setup to deployment
+- Complete code examples with detailed explanations
+- Covers: GitHub, .NET CLI, Entity Framework, JWT, Swagger, and more
+
+**Start here if you are:**
+- New to Minimal API
+- Learning .NET development
+- Want detailed explanations
+
+---
+
+#### ⚡ [Quick Reference (المرجع السريع)](./Quick_Reference_AR.md)
+**Best for:** Developers who need quick code snippets
+
+**Content:**
+- Git commands
+- .NET CLI commands
+- Entity Framework commands
+- Connection strings
+- Ready-to-use CRUD code
+- JWT authentication setup
+- Common SQL queries
+- VS Code shortcuts
+
+**Use this when:**
+- You need a specific command quickly
+- You want to copy-paste code
+- You're looking for a quick example
+
+---
+
+#### 🔧 [Troubleshooting Guide (دليل حل المشاكل)](./Common_Errors_Solutions_AR.md)
+**Best for:** Anyone encountering errors
+
+**Content:**
+- 21 common problems with solutions
+- Database connection issues
+- Entity Framework errors
+- JWT authentication problems
+- Performance optimization tips
+
+**Use this when:**
+- You encounter an error
+- API is not working correctly
+- You want to optimize performance
+
+---
+
+#### 📋 [Arabic Index (الفهرس العربي)](./README_AR.md)
+**Best for:** Navigation and overview
+
+**Content:**
+- Overview of all documentation
+- How to use the wiki
 - Project structure
-- API features
+- Learning path (8 weeks)
+- Quick start guide
+
+---
+
+### For English Speakers
+
+#### 📘 [Complete Project Documentation](./Complete_Project_Documentation.md)
+**Best for:** Understanding the entire project
+
+**Content:**
+- Project overview and architecture
+- Technology stack
+- Complete project structure
+- API features (pagination, filtering, sorting, searching)
 - Authentication & authorization
+- Endpoints documentation
 - Caching strategy
 - Error handling
 - Performance optimizations
 - Development journey
 
-### 3. Technical Reference
-**Perfect for:** Developers implementing features
-**Time to read:** 45 minutes
-**Contents:**
-- Technical specifications
+**Use this for:**
+- Comprehensive project understanding
+- Architecture reference
+- Production deployment
+- Team onboarding
+
+---
+
+#### 🚀 [Quick Start Guide](./Quick_Start_Guide.md)
+**Best for:** Getting started quickly
+
+**Content:**
+- Prerequisites
+- Installation steps
+- First-time setup
+- Basic usage examples
+
+**Use this when:**
+- You want to run the project quickly
+- You're new to the project
+- You need minimal setup instructions
+
+---
+
+#### 🔍 [Technical Reference](./Technical_Reference.md)
+**Best for:** Advanced developers
+
+**Content:**
+- Detailed technical specifications
+- API endpoint reference
 - Database schema
-- Code architecture
-- Security implementation
-- Query service details
-- Code generation logic
-- Cache invalidation
-- Audit fields
-- Swagger configuration
-- Testing examples
-- Deployment checklist
+- Code architecture patterns
+- Advanced features
 
 ---
 
-## 🎓 Learning Path
+## 🎯 Quick Navigation
 
-### Beginner Path
-1. Read [Quick Start Guide](Quick_Start_Guide.md)
-2. Try the examples in Swagger
-3. Test CRUD operations
-4. Explore different endpoints
+### By Role
 
-### Intermediate Path
-1. Read [Complete Project Documentation](Complete_Project_Documentation.md)
-2. Understand the architecture
-3. Learn about caching strategy
-4. Explore custom endpoints
+**👨‍🎓 Students:**
+1. Start with [Complete Tutorial (AR)](./Clinic_API_Complete_Tutorial_AR.md)
+2. Follow chapters in order
+3. Use [Quick Reference (AR)](./Quick_Reference_AR.md) as needed
+4. Refer to [Troubleshooting (AR)](./Common_Errors_Solutions_AR.md) when stuck
 
-### Advanced Path
-1. Read [Technical Reference](Technical_Reference.md)
-2. Study code architecture
-3. Understand query optimization
-4. Learn deployment strategies
+**👨‍💻 Developers:**
+1. Read [Complete Project Documentation](./Complete_Project_Documentation.md)
+2. Use [Quick Start Guide](./Quick_Start_Guide.md) to set up
+3. Refer to [Technical Reference](./Technical_Reference.md) for details
+4. Use [Quick Reference (AR)](./Quick_Reference_AR.md) for code snippets
 
----
-
-## 💡 Common Tasks
-
-### How do I...
-
-**...get started quickly?**
-→ See [Quick Start Guide](Quick_Start_Guide.md)
-
-**...authenticate?**
-→ Use `/api/auth/login` to get a JWT token, then click Authorize in Swagger
-
-**...paginate results?**
-→ Add `?page=2&pageSize=50` to any GET endpoint
-
-**...search data?**
-→ Add `?search=your-term` to any GET endpoint
-
-**...filter results?**
-→ Add `?propertyName=value` (e.g., `?isActive=true`)
-
-**...sort data?**
-→ Add `?sort=PropertyName&order=asc` or `order=desc`
-
-**...create a record?**
-→ POST to `/api/lookup/{entity}` with JSON body
-
-**...update a record?**
-→ PUT to `/api/lookup/{entity}/{code}` with JSON body
-
-**...delete a record?**
-→ DELETE to `/api/lookup/{entity}/{code}`
-
-**...understand the architecture?**
-→ Read the Architecture section in [Complete Project Documentation](Complete_Project_Documentation.md)
-
-**...deploy to production?**
-→ Follow the deployment checklist in [Technical Reference](Technical_Reference.md)
+**👨‍🏫 Teachers:**
+1. Use [Complete Tutorial (AR)](./Clinic_API_Complete_Tutorial_AR.md) as curriculum
+2. Each chapter = one lecture
+3. Provide [Quick Reference (AR)](./Quick_Reference_AR.md) as handout
+4. Share [Troubleshooting (AR)](./Common_Errors_Solutions_AR.md) with students
 
 ---
 
-## 🔍 Search Tips
+## 📁 Project Structure
 
-### Finding Information
-
-**Looking for endpoint details?**
-- Check Swagger UI at `/swagger`
-- See "Endpoints Documentation" in [Complete Project Documentation](Complete_Project_Documentation.md)
-
-**Need code examples?**
-- See "Common API Operations" in [Quick Start Guide](Quick_Start_Guide.md)
-- Check "Testing Endpoints" in [Technical Reference](Technical_Reference.md)
-
-**Want to understand caching?**
-- See "Caching Strategy" in [Complete Project Documentation](Complete_Project_Documentation.md)
-- Check "Cache Invalidation" in [Technical Reference](Technical_Reference.md)
-
-**Looking for performance tips?**
-- See "Performance Optimizations" in [Complete Project Documentation](Complete_Project_Documentation.md)
-- Check "Performance Benchmarks" in [Technical Reference](Technical_Reference.md)
+```
+Clinic_API/
+├── Data/                    # DbContext
+├── Models/                  # Entity Models (135+ entities)
+├── Extensions/              # Extension Methods & Endpoints
+├── Services/                # Business Logic
+├── Middleware/              # Global Error Handling
+├── wwwroot/                 # Static Files (Swagger customization)
+├── wiki/                    # This documentation
+├── Program.cs               # Application entry point
+└── appsettings.json         # Configuration
+```
 
 ---
 
-## 📊 Project Status
+## 🚀 Quick Start
 
-### Current Version: 1.0.0
-**Status:** ✅ Production Ready
-**Last Updated:** December 23, 2025
+```bash
+# 1. Clone the repository
+git clone <your-repo-url>
+cd Clinic2026/Clinic_API
 
-### Metrics
-- **Endpoints:** 100+
-- **Cache Coverage:** 100%
-- **EF Warnings:** 0
-- **Documentation:** Complete
-- **Test Coverage:** Manual testing complete
+# 2. Restore packages
+dotnet restore
 
-### Recent Updates
-- ✅ Added AsNoTracking for 20-30% performance boost
-- ✅ Fixed all EF Core warnings
-- ✅ Enhanced error handling with logging
-- ✅ Increased default page size to 50
-- ✅ Added comprehensive XML documentation
-- ✅ Created complete wiki documentation
+# 3. Update connection string in appsettings.json
+
+# 4. Run the project
+dotnet run
+
+# 5. Open Swagger
+# https://localhost:7099/swagger
+```
 
 ---
 
-## 🤝 Contributing
+## 🛠️ Prerequisites
 
-### Documentation Updates
-If you find any issues or want to improve the documentation:
-1. Update the relevant markdown file
-2. Follow the existing format
-3. Test all code examples
-4. Update the version date
+- ✅ [.NET 9 SDK](https://dotnet.microsoft.com/download)
+- ✅ [SQL Server](https://www.microsoft.com/sql-server/sql-server-downloads)
+- ✅ [Visual Studio Code](https://code.visualstudio.com) or Visual Studio 2022
+- ✅ [Git](https://git-scm.com)
 
-### Code Contributions
-Follow the established patterns:
-- Use generic methods where possible
-- Implement cache invalidation
-- Add XML documentation
-- Follow naming conventions
-- Test thoroughly
+---
+
+## 📦 Key Features
+
+- ✅ **100+ API Endpoints** with full CRUD operations
+- ✅ **JWT Authentication** with role-based authorization
+- ✅ **Output Caching** for optimal performance
+- ✅ **Pagination, Filtering, Sorting, Searching** on all GET endpoints
+- ✅ **Bilingual Support** (English/Arabic)
+- ✅ **Comprehensive Swagger Documentation**
+- ✅ **Production-Ready** with enterprise best practices
+
+---
+
+## 🔗 Useful Links
+
+### Official Documentation
+- [.NET Documentation](https://learn.microsoft.com/dotnet/)
+- [ASP.NET Core Minimal APIs](https://learn.microsoft.com/aspnet/core/fundamentals/minimal-apis)
+- [Entity Framework Core](https://learn.microsoft.com/ef/core/)
+
+### Tools
+- [JWT.io](https://jwt.io/) - Decode JWT tokens
+- [Swagger Editor](https://editor.swagger.io/) - Edit OpenAPI specs
+- [Postman](https://www.postman.com/) - Test APIs
 
 ---
 
 ## 📞 Support
 
-### Getting Help
-1. **Check the documentation** - Most questions are answered here
-2. **Try Swagger UI** - Interactive API documentation
-3. **Review logs** - Check application logs for errors
-4. **Contact the team** - Reach out to the development team
-
-### Useful Resources
-- **Swagger UI:** `https://localhost:7099/swagger`
-- **API Base URL:** `https://localhost:7099/api`
-- **Documentation:** This wiki
+For questions or issues:
+1. Check the [Troubleshooting Guide (AR)](./Common_Errors_Solutions_AR.md)
+2. Review the appropriate documentation above
+3. Check Swagger documentation at `/swagger`
+4. Contact the development team
 
 ---
 
-## 🎯 Next Steps
+## 📄 Documentation Files
 
-### New Users
-1. ✅ Read [Quick Start Guide](Quick_Start_Guide.md)
-2. ✅ Try the API in Swagger
-3. ✅ Test CRUD operations
-4. ✅ Build your first integration
-
-### Existing Users
-1. ✅ Explore advanced features
-2. ✅ Read [Technical Reference](Technical_Reference.md)
-3. ✅ Optimize your queries
-4. ✅ Implement best practices
-
-### Administrators
-1. ✅ Review [Complete Project Documentation](Complete_Project_Documentation.md)
-2. ✅ Plan deployment strategy
-3. ✅ Set up monitoring
-4. ✅ Configure production environment
+| File | Language | Purpose | Best For |
+|------|----------|---------|----------|
+| [Clinic_API_Complete_Tutorial_AR.md](./Clinic_API_Complete_Tutorial_AR.md) | 🇸🇦 Arabic | Complete tutorial (15 chapters) | Students & Beginners |
+| [Quick_Reference_AR.md](./Quick_Reference_AR.md) | 🇸🇦 Arabic | Quick command reference | Developers |
+| [Common_Errors_Solutions_AR.md](./Common_Errors_Solutions_AR.md) | 🇸🇦 Arabic | Troubleshooting guide | Problem solving |
+| [README_AR.md](./README_AR.md) | 🇸🇦 Arabic | Arabic index & overview | Navigation |
+| [Complete_Project_Documentation.md](./Complete_Project_Documentation.md) | 🇬🇧 English | Full project documentation | Comprehensive reference |
+| [Quick_Start_Guide.md](./Quick_Start_Guide.md) | 🇬🇧 English | Quick setup guide | Fast start |
+| [Technical_Reference.md](./Technical_Reference.md) | 🇬🇧 English | Technical details | Advanced developers |
 
 ---
 
-**Welcome to Clinic2026 API! 🚀**
+**Last Updated:** December 24, 2025
+**Version:** 2.0
+**Status:** ✅ Production Ready
 
-*Let's build something amazing together!*
+---
+
+**Happy Coding! 🚀**
